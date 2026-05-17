@@ -53,7 +53,7 @@ void loop(void) {
 void handle_frame(llp_frame_t* frame) {
     uint8_t data[LLP_MAX_PAYLOAD];
     int len = llp_get_final_payload(frame, data, sizeof(data));
-    if (len < 2) return;
+    if (len <= 0) return;
 
     uint16_t rx_id = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
 

@@ -189,6 +189,7 @@ static inline int llp_parser_process_byte(llp_parser_t* p, uint8_t byte,
             p->error_code = LLP_ERR_TIMEOUT;
             p->timeouts++;
             _llp_parser_reset(p);
+            p->last_byte_time = current_ms;
             if (byte == LLP_MAGIC_1) p->state = LLP_STATE_WAIT_MAGIC2;
             return -1;
         }
@@ -393,7 +394,7 @@ static inline int llp_get_final_payload(const llp_frame_t* frame,
         pos += meta_len;
     }
 
-    return 0;
+    return -1;
 }
 
 // =============================================================================

@@ -28,8 +28,10 @@ void loop(void) {
         if (result == 1) {
             uint8_t data[LLP_MAX_PAYLOAD];
             int len = llp_get_final_payload(&parser.frame, data, sizeof(data));
-            if (len >= 0) {
+            if (len > 0) {
                 send_data(data, (uint16_t)len);
+            } else {
+                send_data(NULL, 0);
             }
         }
     }
