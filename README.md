@@ -323,3 +323,9 @@ Override defaults with build flags:
 ## License
 
 MIT — See [LICENSE](LICENSE)
+
+LLP Specification v3.1.0 — Copyright © 2026 Flamingo Communications
+
+This specification is maintained as the authoritative reference for the LLP protocol. All implementations should reference this document as the canonical behaviour definition.
+
+---
