@@ -2,19 +2,47 @@ name: PlatformIO CI
 
 on:
   push:
-    branches: [main, develop, feature/*]
+    branches: [main, develop, dev, feature/*]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, dev]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install PlatformIO
         run: pip install platformio
-      - name: Run tests
+
+      - name: Install lcov
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lcov
+
+      - name: Run tests with coverage
         run: platformio test -e test -v
+
+      - name: Generate coverage report
+        run: |
+          mkdir -p coverage
+          # Collect coverage from .pio/build/test into lcov format
+          lcov --capture --directory .pio/build/test \
+               --output-file coverage/lcov.info \
+               --ignore-errors inconsistent
+          # Exclude Unity framework and system headers
+          lcov --remove coverage/lcov.info \
+               '/usr/*' '*/libdeps/*' '*/Unity/*' '*/unity/*' \
+               --output-file coverage/lcov.info \
+               --ignore-errors inconsistent
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true

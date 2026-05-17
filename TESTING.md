@@ -61,6 +61,28 @@ gcc -std=c99 -I include -o /tmp/llp_cross_gen tools/cross_test_generate.c
 /tmp/llp_cross_gen [output_dir]
 ```
 
+## Coverage
+
+The CI pipeline generates code coverage reports using GCOV/LCOV and uploads them to Codecov.
+Coverage data is collected automatically on every push and pull request.
+
+### Local Coverage (optional)
+
+Requires `lcov`:
+```bash
+# Ubuntu/Debian
+sudo apt-get install lcov
+
+# Run tests (coverage flags are already in platformio.ini)
+platformio test -e test
+
+# Generate HTML report
+mkdir -p coverage
+lcov --capture --directory .pio/build/test --output-file coverage/lcov.info
+lcov --remove coverage/lcov.info '/usr/*' '*/libdeps/*' '*/Unity/*' --output-file coverage/lcov.info
+genhtml coverage/lcov.info --output-directory coverage/html
+```
+
 ## Known Issues
 
 See [BUGS.md](BUGS.md) for known issues discovered through spec conformance testing.

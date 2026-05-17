@@ -39,3 +39,9 @@ __pycache__/
 *.tmp
 test_output.txt
 BUGS.md
+
+# Coverage
+coverage/
+*.gcov
+*.gcda
+*.gcno
