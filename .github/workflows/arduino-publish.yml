@@ -17,8 +17,10 @@ jobs:
           python-version: '3.11'
 
       - name: Install PlatformIO
-        run: pip install platformio
-
+        run: |
+          pip install platformio
+          pip install intelhex reedsolo bitstring
+        
       - name: Verify library version matches tag
         run: |
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
