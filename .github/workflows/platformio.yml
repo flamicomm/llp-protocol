@@ -2,9 +2,9 @@ name: PlatformIO CI
 
 on:
   push:
-    branches: [main, develop, dev, feature/*]
+    branches: [main, dev, feature/*]
   pull_request:
-    branches: [main, develop, dev]
+    branches: [main, dev]
 
 jobs:
   test:
@@ -35,9 +35,9 @@ jobs:
                --ignore-errors inconsistent
           # Exclude Unity framework and system headers
           lcov --remove coverage/lcov.info \
-               '/usr/*' '*/libdeps/*' '*/Unity/*' '*/unity/*' \
+               '*/libdeps/*' '*/Unity/*' '*/unity/*' \
                --output-file coverage/lcov.info \
-               --ignore-errors inconsistent
+               --ignore-errors inconsistent,unused
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
