@@ -6,6 +6,7 @@
 [![PlatformIO CI](https://github.com/EnzoLeonel/llp-protocol/actions/workflows/platformio.yml/badge.svg)](https://github.com/EnzoLeonel/llp-protocol/actions/workflows/platformio.yml)
 [![C Standard](https://img.shields.io/badge/C-99-blue)](https://en.wikipedia.org/wiki/C99)
 [![Spec v3.1.0](https://img.shields.io/badge/Spec-v3.1.0-blue)](https://github.com/flamicomm/llp-spec)
+[![codecov](https://codecov.io/github/flamicomm/llp-protocol/graph/badge.svg?token=DGZMIPFEBE)](https://codecov.io/github/flamicomm/llp-protocol)
 
 ---
 
