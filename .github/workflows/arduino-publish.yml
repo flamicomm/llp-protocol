@@ -1,0 +1,67 @@
+name: Arduino Library Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Verify library version matches tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          LIB_VERSION=$(grep "^version=" library.properties | cut -d= -f2)
+          if [ "$TAG_VERSION" != "$LIB_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match library.properties version ($LIB_VERSION)"
+            exit 1
+          fi
+          echo "Library version verified: $LIB_VERSION"
+
+      - name: Run tests
+        run: platformio test -e test -v
+
+      - name: Build all target platforms
+        run: |
+          for env in arduino_uno arduino_nano arduino_mega esp8266 esp32 stm32f103 attiny85; do
+            echo "=== Building $env ==="
+            pio run -e $env || exit 1
+          done
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version and changelog
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Extract changelog section for this version
+          awk '/^## \['$VERSION'\]/{found=1} found{print} /^## \[/{if(found)exit}' CHANGELOG.md > release_notes.md || true
+          if [ ! -s release_notes.md ]; then
+            echo "No changelog section found for $VERSION" > release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
