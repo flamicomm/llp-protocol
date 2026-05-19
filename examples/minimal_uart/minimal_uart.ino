@@ -9,7 +9,7 @@
  * Baud rate: 115200
  */
 
-#include "llp_protocol.h"
+#include <llp_protocol.h>
 
 llp_parser_t parser;
 uint8_t tx_buffer[LLP_MAX_FRAME_SIZE(LLP_MAX_PAYLOAD)];
