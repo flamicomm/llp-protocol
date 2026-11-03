@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Robustness measurements** (`docs/ROBUSTNESS.md`, `tools/noise_report.c`):
+  deterministic integer-only noise model (bit flips, drops, inserts, bursts)
+  over 400 frames, plus a 16 MB pure-noise false-accept test. Measured: **0
+  corrupt frames delivered** in every scenario, 97–100 % of frames intact at
+  1e-3..1e-4 error rates, ~50–70 bytes to resync, **0 false accepts in 16 MB**.
+- **Property fuzzer** (`tools/fuzz_v4.c`): four input distributions, five
+  invariants (guard bytes, capacity, exact roundtrip, error code consistency,
+  resynchronisation); runs standalone or as a libFuzzer target. 600 000 inputs
+  across three seeds under ASan/UBSan without failures.
+- `scripts/check_robustness.sh` runs the fuzzer, regenerates the noise table
+  and verifies it against `docs/ROBUSTNESS.md`; CI step added.
 - **Transport adapter examples** (`examples/v4/`, built in CI):
   - `avr_baremetal/`: ATmega328P with UART interrupt rings, streaming sink and
     a bounded all-or-nothing TX reservation; complete app in ~2 KB of flash.

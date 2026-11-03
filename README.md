@@ -303,6 +303,16 @@ platformio test -e test -v
 | `test_parser_process.c` | 11 | Byte-by-byte parsing and error handling |
 | `test_crc.c` | 8 | CRC16-CCITT validation |
 | `test_spec_vectors.c` | 55 | Spec conformance (199 vectors total) |
+| `test_v4.c` | 13 | Wire format 4.0.0 core + conformance vectors |
+| `test_v4_ring.c` | 5 | Single-producer/single-consumer ring |
+
+Robustness is measured separately (not part of the Unity suite):
+
+```bash
+sh scripts/check_robustness.sh   # property fuzzer + noise channel
+```
+
+Results and method: [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 
 ### Spec vector categories
 

@@ -37,6 +37,9 @@ jobs:
       - name: Build and run the v4 examples
         run: sh scripts/check_examples.sh
 
+      - name: Robustness (property fuzzer + noise channel)
+        run: sh scripts/check_robustness.sh
+
       - name: Install lcov
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lcov
 
