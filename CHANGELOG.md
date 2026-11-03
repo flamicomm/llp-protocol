@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Wire format **v4.0.0** specification (`docs/SPEC-v4.md`): fixed 6-byte header
+  `MAGIC + LEN(1) + CHANNEL(1)`, opaque payload, no layer chain. Stuffing,
+  magic, CRC16-CCITT and the timeout semantics are unchanged.
+- `docs/DECISIONS.md`: ADR log behind v4 (header, stuffing vs COBS, CRC, length,
+  channels, ARQ scope, timeout, external payload buffer, breaking change).
+- `docs/WHY-LLP.md`: comparison against plain text, SLIP, COBS, HDLC/PPP and
+  Modbus RTU, cost model and when not to use LLP.
+- `docs/CONFORMANCE.md` and `spec/vectors/v4/`: cross-language conformance
+  vectors (encode, decode, errors, timing) with a self-checking generator.
+- `scripts/llp_v4.py`: Python reference implementation of wire format 4.0.0.
+- `scripts/gen_vectors_v4.py`: generates and verifies the conformance vectors.
+
+### Changed
+- v4 is a **breaking wire change**; the code in this repository still implements
+  v3.1.0 until the v4 milestone lands. v3.1.0 stays available as a tag.
+
 ## [3.1.0] - 2026-06-10
 
 ### Added

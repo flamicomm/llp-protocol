@@ -1,5 +1,10 @@
 # Protocol Specification — LLP v3.1.0
 
+> **Status:** v3.1.0 is the **implemented** version. The next wire format is
+> specified in [`SPEC-v4.md`](SPEC-v4.md) (draft), with the rationale in
+> [`DECISIONS.md`](DECISIONS.md). v4 replaces the 2-byte length + layer chain
+> with `MAGIC + LEN(1) + CHANNEL(1)`; stuffing, magic and CRC are unchanged.
+
 ## Wire Format
 
 ```

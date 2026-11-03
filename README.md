@@ -41,6 +41,13 @@ LLP (Layered Link Protocol) is a transport-level framing protocol designed for *
 
 This implementation conforms to the [LLP Specification v3.1.0](https://github.com/flamicomm/llp-spec) with **90 passing tests** including all 199 official test vectors.
 
+> **Wire format v4.0.0 (draft):** the next major version replaces the 2-byte
+> length + layer chain with a fixed 6-byte header (`MAGIC + LEN + CHANNEL`) and
+> adds a low-RAM parser profile. See [`docs/SPEC-v4.md`](docs/SPEC-v4.md),
+> [`docs/DECISIONS.md`](docs/DECISIONS.md) and the conformance vectors in
+> [`spec/vectors/v4/`](spec/vectors/v4/). **The code in this repository still
+> implements v3.1.0**; v4 lands in the next milestone.
+
 ---
 
 ## Wire Format
