@@ -156,6 +156,19 @@ Then run the vectors. [`scripts/llp_v4.py`](../scripts/llp_v4.py) is ~200 lines
 and can be transliterated directly; it was written to be readable rather than
 clever.
 
+### Consuming the vectors from C
+
+The C implementation ships the vectors as a generated header so the test suite
+has no JSON dependency:
+
+```bash
+python3 scripts/gen_vectors_v4.py --emit-c test/v4_vectors_generated.h
+```
+
+`test/test_v4.c` walks `llp4_vec_encode[]` and `llp4_vec_decode[]` and asserts
+exactly what the JSON says. CI regenerates the header and fails if it is stale,
+so the C fixture and the JSON can never drift apart.
+
 ## Adding vectors
 
 1. Add the case to the relevant `build_*_vectors()` function.

@@ -133,6 +133,21 @@ void test_bug_timeout_does_not_update_last_byte_time(void);
 void test_bug_timeout_between_frames(void);
 void test_bug_final_payload_returns_zero_without_final_node(void);
 
+/* Wire format v4 (include/llp_v4.h) */
+void test_v4_encode_vectors(void);
+void test_v4_decode_vectors(void);
+void test_v4_frame_size(void);
+void test_v4_crc_matches_bitwise_reference(void);
+void test_v4_crc_seed_covers_magic(void);
+void test_v4_parser_state_is_small(void);
+void test_v4_encode_rejects_small_buffer(void);
+void test_v4_encode_empty_payload(void);
+void test_v4_encoder_stuffs_everything_but_magic(void);
+void test_v4_zero_capacity_accepts_only_empty_payload(void);
+void test_v4_capacity_error_before_payload(void);
+void test_v4_bad_crc_is_not_delivered_then_recovers(void);
+void test_v4_timeout_wraps_at_16_bits(void);
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -266,6 +281,21 @@ int main(void)
     RUN_TEST(test_bug_timeout_does_not_update_last_byte_time);
     RUN_TEST(test_bug_timeout_between_frames);
     RUN_TEST(test_bug_final_payload_returns_zero_without_final_node);
+
+    /* Wire format v4 */
+    RUN_TEST(test_v4_encode_vectors);
+    RUN_TEST(test_v4_decode_vectors);
+    RUN_TEST(test_v4_frame_size);
+    RUN_TEST(test_v4_crc_matches_bitwise_reference);
+    RUN_TEST(test_v4_crc_seed_covers_magic);
+    RUN_TEST(test_v4_parser_state_is_small);
+    RUN_TEST(test_v4_encode_rejects_small_buffer);
+    RUN_TEST(test_v4_encode_empty_payload);
+    RUN_TEST(test_v4_encoder_stuffs_everything_but_magic);
+    RUN_TEST(test_v4_zero_capacity_accepts_only_empty_payload);
+    RUN_TEST(test_v4_capacity_error_before_payload);
+    RUN_TEST(test_v4_bad_crc_is_not_delivered_then_recovers);
+    RUN_TEST(test_v4_timeout_wraps_at_16_bits);
 
     return UNITY_END();
 }

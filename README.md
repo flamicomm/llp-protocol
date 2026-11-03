@@ -43,10 +43,12 @@ This implementation conforms to the [LLP Specification v3.1.0](https://github.co
 
 > **Wire format v4.0.0 (draft):** the next major version replaces the 2-byte
 > length + layer chain with a fixed 6-byte header (`MAGIC + LEN + CHANNEL`) and
-> adds a low-RAM parser profile. See [`docs/SPEC-v4.md`](docs/SPEC-v4.md),
-> [`docs/DECISIONS.md`](docs/DECISIONS.md) and the conformance vectors in
-> [`spec/vectors/v4/`](spec/vectors/v4/). **The code in this repository still
-> implements v3.1.0**; v4 lands in the next milestone.
+> adds a low-RAM parser profile. The C core is available in
+> [`include/llp_v4.h`](include/llp_v4.h) (17 bytes of parser state on AVR); see
+> [`docs/SPEC-v4.md`](docs/SPEC-v4.md), [`docs/DECISIONS.md`](docs/DECISIONS.md)
+> and the conformance vectors in [`spec/vectors/v4/`](spec/vectors/v4/).
+> **The default wire in this repository is still v3.1.0** — `llp_protocol.h` is
+> unchanged; v4 becomes the default in the next milestone.
 
 ---
 

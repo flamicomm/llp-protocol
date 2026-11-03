@@ -256,22 +256,28 @@ mirror it.
 ```c
 /* Parser: payload storage is supplied by the caller (low-RAM profile) or
    embedded in the struct (compatibility profile). */
-typedef struct llp_parser llp_parser_t;
+typedef struct llp4_parser llp4_parser_t;
 
-void        llp_parser_init(llp_parser_t *p, uint16_t timeout_ms);
-void        llp_parser_attach(llp_parser_t *p, uint8_t *buf, uint8_t cap);
-int8_t      llp_parser_feed(llp_parser_t *p, uint8_t byte, uint32_t now_ms);
-const uint8_t *llp_parser_payload(const llp_parser_t *p, uint8_t *len_out);
-uint8_t     llp_parser_channel(const llp_parser_t *p);
+void           llp4_parser_init(llp4_parser_t *p, uint8_t *buf, uint8_t cap,
+                                uint16_t timeout_ms);
+int            llp4_parser_feed(llp4_parser_t *p, uint8_t byte, uint16_t now_ms);
+const uint8_t *llp4_parser_payload(const llp4_parser_t *p, uint8_t *len_out);
+uint8_t        llp4_parser_channel(const llp4_parser_t *p);
 
 /* Encoder: streaming, no frame buffer required. */
-size_t      llp_frame_size(uint8_t payload_len);
-typedef void (*llp_write_fn)(void *ctx, uint8_t byte);
-void        llp_tx_begin(llp_tx_t *tx, uint8_t channel, uint8_t len,
-                         llp_write_fn write, void *ctx);
-void        llp_tx_byte(llp_tx_t *tx, uint8_t byte);
-void        llp_tx_end(llp_tx_t *tx);
+size_t llp4_frame_size(uint8_t payload_len);
+typedef void (*llp4_write_fn)(void *ctx, uint8_t byte);
+void   llp4_tx_begin(llp4_tx_t *tx, uint8_t channel, uint8_t len,
+                     llp4_write_fn write, void *ctx);
+void   llp4_tx_byte(llp4_tx_t *tx, uint8_t byte);
+void   llp4_tx_end(llp4_tx_t *tx);
 ```
+
+`llp4_parser_feed()` returns `LLP4_EV_FRAME` (1) when a frame is delivered,
+`LLP4_EV_NONE` (0) otherwise, or `-LLP4_ERR_*` on error (`p->error` holds the
+same code). The `llp4_` prefix is temporary: the header ships as
+`include/llp_v4.h` while v3 remains the default; at release it becomes
+`llp_protocol.h` with unprefixed names.
 
 Memory profiles:
 

@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **C implementation of wire format 4.0.0** in `include/llp_v4.h`:
+  - parser with a caller-supplied payload buffer — 17 bytes of state on AVR
+    (the application's line buffer is reused), CRC/TIMEOUT/SYNC/LEN errors,
+    wrap-safe 16-bit timestamps, optional statistics;
+  - streaming encoder with a write callback, so no frame buffer is needed
+    (`llp4_frame_size()` gives the worst-case reservation);
+  - CRC16-CCITT with a 16-nibble table (kept in program memory on AVR) or the
+    bitwise loop (`LLP4_CRC_TABLE=0`);
+  - `llp4_encode()` convenience wrapper for callers that do have a buffer.
+- `test/test_v4.c` + `test/v4_vectors_generated.h`: the conformance vectors run
+  in the native Unity suite (13 new tests, 103 total).
+- `src/llp_v4_check.c`: compile-time check of the v4 core for every PlatformIO
+  environment (AVR, ATtiny85, ESP8266, ESP32, STM32).
 - Wire format **v4.0.0** specification (`docs/SPEC-v4.md`): fixed 6-byte header
   `MAGIC + LEN(1) + CHANNEL(1)`, opaque payload, no layer chain. Stuffing,
   magic, CRC16-CCITT and the timeout semantics are unchanged.

@@ -21,7 +21,10 @@ jobs:
         run: pip install platformio
 
       - name: Check wire-format v4 conformance vectors
-        run: python3 scripts/gen_vectors_v4.py --check
+        run: |
+          python3 scripts/gen_vectors_v4.py --check
+          python3 scripts/gen_vectors_v4.py --emit-c /tmp/v4_vectors_generated.h
+          diff -u test/v4_vectors_generated.h /tmp/v4_vectors_generated.h
 
       - name: Install lcov
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lcov
