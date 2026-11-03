@@ -370,10 +370,16 @@ typedef struct {
     uint16_t crc;
 } llp4_tx_t;
 
-/** Worst-case on-wire size of a frame carrying `payload_len` bytes. */
+/**
+ * Worst-case on-wire size of a frame carrying `payload_len` bytes.
+ * Also available as a macro so it can be used in constant expressions
+ * (e.g. `typedef char fit[(LLP4_FRAME_SIZE(48) <= RING) ? 1 : -1];`).
+ */
+#define LLP4_FRAME_SIZE(payload_len) (10u + 2u * (size_t)(payload_len))
+
 static inline size_t llp4_frame_size(uint8_t payload_len)
 {
-    return (size_t)10 + (size_t)2 * (size_t)payload_len;
+    return LLP4_FRAME_SIZE(payload_len);
 }
 
 static inline void llp4_tx_stuffed(llp4_tx_t *tx, uint8_t byte)

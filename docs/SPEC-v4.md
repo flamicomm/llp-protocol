@@ -1,6 +1,6 @@
 # Protocol Specification — LLP v4.0.0 (wire format)
 
-**Status:** draft — supersedes [`PROTOCOL.md`](PROTOCOL.md) (v3.1.0).
+**Status:** current (v4.0.0). Supersedes [`PROTOCOL.md`](PROTOCOL.md) (v3.1.0).
 **Scope:** the bytes on the wire and the observable behaviour of a conformant
 parser. The C/Java/Python APIs are described in §11 as guidance, not as wire.
 
@@ -250,8 +250,7 @@ Rationale for each change is recorded in [`DECISIONS.md`](DECISIONS.md).
 
 ## 11. Reference API (informative)
 
-The API below is what the C library implements in Phase 1. Other languages
-mirror it.
+The API below is what the C library implements. Other languages mirror it.
 
 ```c
 /* Parser: payload storage is supplied by the caller (low-RAM profile) or
@@ -295,7 +294,7 @@ An implementation is conformant when it passes every vector in
 
 ---
 
-**Document:** wire format v4.0.0 (draft)
+**Document:** wire format v4.0.0
 **Supersedes:** [`PROTOCOL.md`](PROTOCOL.md) (v3.1.0)
 **Decisions:** [`DECISIONS.md`](DECISIONS.md)
 **Vectors:** [`spec/vectors/v4/`](../spec/vectors/v4/)

@@ -208,7 +208,7 @@ but not in production (single machine, in testing).
 
 **Decision.** v4 replaces v3 on the wire. The library does **not** support
 parsing both formats. v3.1.0 remains available as tag `v3.1.0`; all consumers
-migrate together (Phase 5 of the plan).
+migrate together (done in the v4.0.0 release).
 
 **Consequences.**
 - The parser keeps one state machine and one error table: minimal flash.
