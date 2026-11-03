@@ -148,6 +148,13 @@ void test_v4_capacity_error_before_payload(void);
 void test_v4_bad_crc_is_not_delivered_then_recovers(void);
 void test_v4_timeout_wraps_at_16_bits(void);
 
+/* Ring helper (include/llp_v4_ring.h) */
+void test_v4_ring_init(void);
+void test_v4_ring_push_pop(void);
+void test_v4_ring_fills_to_capacity(void);
+void test_v4_ring_wraps_indices(void);
+void test_v4_ring_smallest_size(void);
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -296,6 +303,13 @@ int main(void)
     RUN_TEST(test_v4_capacity_error_before_payload);
     RUN_TEST(test_v4_bad_crc_is_not_delivered_then_recovers);
     RUN_TEST(test_v4_timeout_wraps_at_16_bits);
+
+    /* Ring helper */
+    RUN_TEST(test_v4_ring_init);
+    RUN_TEST(test_v4_ring_push_pop);
+    RUN_TEST(test_v4_ring_fills_to_capacity);
+    RUN_TEST(test_v4_ring_wraps_indices);
+    RUN_TEST(test_v4_ring_smallest_size);
 
     return UNITY_END();
 }

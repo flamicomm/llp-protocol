@@ -270,6 +270,18 @@ Located at `examples/request_response/request_response.ino`:
 - Retries up to 3 times on timeout
 - Manages up to 5 pending requests
 
+### Wire format v4 transport adapters
+
+Located at [`examples/v4/`](examples/v4/) (built in CI):
+
+- [`avr_baremetal/`](examples/v4/avr_baremetal/main.c) — ATmega328P: UART
+  interrupt rings, streaming sink with bounded TX reservation, 1 ms tick, text
+  lines on channel 0. The whole application is ~2 KB of flash.
+- [`host_posix/`](examples/v4/host_posix/host_posix.c) — file descriptors and
+  TCP, plus a `--selftest` (300 roundtrips + noise injection) that CI runs.
+
+Integration guide: [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+
 ---
 
 ## Testing

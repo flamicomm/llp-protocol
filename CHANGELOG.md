@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Transport adapter examples** (`examples/v4/`, built in CI):
+  - `avr_baremetal/`: ATmega328P with UART interrupt rings, streaming sink and
+    a bounded all-or-nothing TX reservation; complete app in ~2 KB of flash.
+  - `host_posix/`: file-descriptor/TCP adapter with `--selftest` (300
+    roundtrips + noise injection), `--stdio` and `--tcp` modes.
+  - `docs/INTEGRATION.md`: the three primitives, context rules, sizing, RS-485
+    half-duplex and the text-over-LLP pattern.
+  - `scripts/check_examples.sh` compiles and runs them (CI step).
+- `include/llp_v4_ring.h`: optional single-producer/single-consumer byte ring
+  (8-bit indices, ISR-safe) used by the examples.
 - **Measured memory footprint** (`scripts/measure_v4.py`): compiles a minimal
   translation unit per target/profile, reads `sizeof` from the object symbols
   and the core flash from the code delta. Current numbers on ATmega328P:
