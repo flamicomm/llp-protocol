@@ -78,7 +78,7 @@ void setup() {
 
     llp_parser_init(&parser);
 
-    Serial.println("[BOOT] LLP Serial Echo v3.0.0");
+    Serial.println("[BOOT] LLP Serial Echo v3.1.0");
     Serial.println("[BOOT] Ready. Send LLP frames to this port.");
     send_heartbeat();
 }

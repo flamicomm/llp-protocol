@@ -1,4 +1,4 @@
-# Project Structure — LLP Protocol v3.0.0
+# Project Structure — LLP Protocol v3.1.0
 
 ## Directory Tree
 

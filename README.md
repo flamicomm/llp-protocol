@@ -1,11 +1,13 @@
 # LLP Protocol — Lightweight Link Protocol
 
-**Header-only C library** for embedded communication. Ultra-lightweight (~500B), robust (CRC16-CCITT, byte stuffing, timeouts), and extensible (layer chain with metadata).
+**Header-only C library for embedded communication over noisy byte links.**
+Wire format **4.0.0**: 6-byte fixed header, CRC16-CCITT, byte stuffing,
+channels and timeouts. The parser needs **17 bytes of RAM** on an ATmega328P.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PlatformIO CI](https://github.com/EnzoLeonel/llp-protocol/actions/workflows/platformio.yml/badge.svg)](https://github.com/EnzoLeonel/llp-protocol/actions/workflows/platformio.yml)
 [![C Standard](https://img.shields.io/badge/C-99-blue)](https://en.wikipedia.org/wiki/C99)
-[![Spec v3.1.0](https://img.shields.io/badge/Spec-v3.1.0-blue)](https://github.com/flamicomm/llp-spec)
+[![Spec v4.0.0](https://img.shields.io/badge/Spec-v4.0.0-blue)](docs/SPEC-v4.md)
 [![codecov](https://codecov.io/github/flamicomm/llp-protocol/graph/badge.svg?token=DGZMIPFEBE)](https://codecov.io/github/flamicomm/llp-protocol)
 
 ---
@@ -14,319 +16,304 @@
 
 1. [Overview](#overview)
 2. [Wire Format](#wire-format)
-3. [Layer Chain](#layer-chain)
+3. [Channels](#channels)
 4. [API Reference](#api-reference)
-5. [Quick Start](#quick-start)
-6. [Examples](#examples)
-7. [Testing](#testing)
-8. [Project Structure](#project-structure)
+5. [Memory Footprint](#memory-footprint)
+6. [Quick Start](#quick-start)
+7. [Examples](#examples)
+8. [Testing](#testing)
+9. [Project Structure](#project-structure)
+10. [Migrating from v3](#migrating-from-v3)
 
 ---
 
 ## Overview
 
-LLP (Layered Link Protocol) is a transport-level framing protocol designed for **microcontrollers and embedded systems**. It provides reliable byte-stream framing with error detection and extensible payload routing.
+LLP is a transport-level framing protocol for **microcontrollers and embedded
+systems**. It turns a byte stream (UART, RS-485, RF 433 MHz, LoRa, Bluetooth,
+CAN, sockets) into validated messages.
 
-**Use cases:** UART, RF (433MHz, LoRa), RS485, CAN, Bluetooth, any byte-oriented medium.
+**The one hard guarantee:** a frame reaches the application only if every byte
+of it survived intact. A corrupted command is worse than a lost one — a CNC
+that receives `X-90.5` instead of `X-10.5` cuts the wrong path.
 
 **Key features:**
-- **CRC16-CCITT** error detection on every frame
-- **Byte stuffing** prevents magic sequence (`0xAA 0x55`) from appearing in payload
-- **Timeout protection** (default 2000ms) detects truncated frames
-- **Layer chain** for metadata routing (passthrough/transform layers)
-- **Automatic resync** after errors or noise
-- **Header-only**: single `#include "llp_protocol.h"` — no dependencies
+
+- **CRC16-CCITT** on every frame, checked before the payload is handed over.
+- **Magic-based resynchronisation**: after noise, the next frame is found in a
+  few dozen bytes (measured: ~50–70 bytes).
+- **Byte stuffing** so the magic cannot appear inside a frame.
+- **Channel byte** for routing without per-message overhead.
+- **Inter-byte timeout** (default 2000 ms) for truncated frames.
+- **O(1) work per byte**, no dynamic memory, no recursion.
+- **Header-only**, zero dependencies: `#include "llp_v4.h"`.
+- **Caller-owned buffers**: the parser writes into the application's buffer and
+  the encoder streams through a write callback, so neither needs a
+  frame-sized buffer.
+
+**Why this and not COBS/SLIP/HDLC?** See [`docs/WHY-LLP.md`](docs/WHY-LLP.md).
+**Integration guide:** [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 ### Conformance
 
-This implementation conforms to the [LLP Specification v3.1.0](https://github.com/flamicomm/llp-spec) with **90 passing tests** including all 199 official test vectors.
+This implementation conforms to the specification in
+[`docs/SPEC-v4.md`](docs/SPEC-v4.md). The language-independent test vectors live
+in [`spec/vectors/v4/`](spec/vectors/v4/) and are executed by the C test suite;
+`docs/CONFORMANCE.md` documents the schema and the checklist.
+
+Measured robustness (`docs/ROBUSTNESS.md`): **0 corrupted frames delivered** in
+every noise scenario and **0 false accepts in 16 MB of pure random bytes**.
 
 ---
 
 ## Wire Format
 
 ```
-+--------+--------+--------+--------+------------------+--------+--------+
-| MAGIC1 | MAGIC2 | LEN_L  | LEN_H  | PAYLOAD (stuffed)| CRC_L  | CRC_H  |
-|  0xAA  |  0x55  |  [N]   |  [N]   |  layer chain     |  [N]   |  [N]   |
-+--------+--------+--------+--------+------------------+--------+--------+
+ offset  0      1      2      3        4 .. 3+LEN      4+LEN  5+LEN
+        +------+------+------+------+----------------+------+------+
+        | 0xAA | 0x55 | LEN  | CHAN |    PAYLOAD     | CRC_L| CRC_H|
+        +------+------+------+------+----------------+------+------+
+          magic (never stuffed)     LEN bytes           little-endian
 ```
 
 | Field | Size | Description |
-|-------|------|-------------|
-| `MAGIC1` | 1 | Frame start: `0xAA` (never stuffed) |
-| `MAGIC2` | 1 | Frame start: `0x55` (never stuffed) |
-| `LEN_L` | 1 | Payload length (low byte), little-endian, stuffed |
-| `LEN_H` | 1 | Payload length (high byte), little-endian, stuffed |
-| `PAYLOAD` | N | Layer chain bytes, stuffed |
-| `CRC_L` | 1 | CRC16-CCITT low byte, stuffed |
-| `CRC_H` | 1 | CRC16-CCITT high byte, stuffed |
+|---|---:|---|
+| `MAGIC` | 2 | `0xAA 0x55`, never stuffed |
+| `LEN` | 1 | Payload length, `0..255` |
+| `CHANNEL` | 1 | Application routing tag, `0..255` |
+| `PAYLOAD` | `LEN` | Opaque application bytes |
+| `CRC16` | 2 | CRC16-CCITT-FALSE over `MAGIC + LEN + CHANNEL + PAYLOAD` |
 
-### Byte Stuffing
+All fields from `LEN` onwards are subject to byte stuffing (`0xAA` becomes
+`0xAA 0x00`). A frame with `LEN == 0` is valid.
 
-Every `0xAA` byte in LEN, PAYLOAD, or CRC is escaped as `0xAA 0x00`.  
-An unexpected `0xAA 0x55` inside a frame signals a **resync event** (error recovery).
-
-### CRC Coverage
-
-CRC is computed over **unstuffed** bytes: `MAGIC1 + MAGIC2 + LEN_L + LEN_H + PAYLOAD`.
-
-### Worst-Case Frame Size
+| | Bytes |
+|---|---:|
+| Minimum frame (empty payload, nothing stuffed) | 6 |
+| Common frame with `n` bytes and no `0xAA` | `6 + n` |
+| Worst case (every byte after the magic is `0xAA`) | `10 + 2n` |
 
 ```
-LLP_MAX_FRAME_SIZE(n) = 2 + 4 + (n * 2) + 4 = 8 + n * 2
+empty payload, channel 0     : AA 55 00 00 23 B3
+"ok\n", channel 0            : AA 55 03 00 6F 6B 0A 08 DB
+"G1 X10\n", channel 1        : AA 55 07 01 47 31 20 58 31 30 0A E4 27
+payload AA 55, channel 0     : AA 55 02 00 AA 00 55 D2 4A
 ```
 
-Where `n` is the layer chain length. With `LLP_MAX_PAYLOAD=128`, worst case is 264 bytes.
+Full state machine, error semantics and invariants: [`docs/SPEC-v4.md`](docs/SPEC-v4.md).
 
----
+## Channels
 
-## Layer Chain
+`CHANNEL` is opaque to the protocol. A convention that works well:
 
-The payload contains an ordered sequence of layer headers followed by raw application data:
+| Channel | Suggested use |
+|---:|---|
+| `0` | default / text command stream |
+| `1` | binary commands |
+| `2` | telemetry |
+| `3` | logs |
+| `4..239` | application-defined |
+| `240..255` | reserved |
 
-```
-[LAYER_ID][META_LEN][METADATA...]...[0x00][RAW DATA]
-```
-
-| ID Range | Type | Description |
-|----------|------|-------------|
-| `0x00` | **FinalNode** | End of chain; remaining bytes are raw application data |
-| `0x01–0x7F` | **Passthrough** | Metadata can be skipped; payload is unchanged |
-| `0x80–0xFE` | **Transform** | Payload was transformed (encrypted/compressed); cannot skip |
-| `0xFF` | **Reserved** | Unknown layer ID |
-
-### Meta Length Encoding
-
-- **0–254**: 1 byte (direct value)
-- **255+**: 3 bytes: `0xFF` + big-endian high/low
-
----
+Reliability features (sequence numbers, ACK, retransmission) are **not** part of
+the framing: they belong to the application or a channel convention.
 
 ## API Reference
 
-### Initialization
+### Parser
 
 ```c
-llp_parser_t parser;
-llp_parser_init(&parser);
+#include "llp_v4.h"
+
+static uint8_t payload[64];           /* caller-owned, capacity */
+static llp4_parser_t parser;
+
+llp4_parser_init(&parser, payload, sizeof(payload), 2000);
+
+int rc = llp4_parser_feed(&parser, byte, now_ms);
+if (rc == LLP4_EV_FRAME) {
+    uint8_t len;
+    const uint8_t *data = llp4_parser_payload(&parser, &len);
+    handle(llp4_parser_channel(&parser), data, len);
+} else if (rc < 0) {
+    /* rc is -LLP4_ERR_*; parser.error holds the same code */
+}
 ```
 
-### Processing
+| Symbol | Meaning |
+|---|---|
+| `LLP4_EV_FRAME` / `LLP4_EV_NONE` | `1` / `0` |
+| `LLP4_ERR_CRC` / `_LEN` / `_TIMEOUT` / `_SYNC` | `1..4` |
+| `llp4_parser_reset()` | reset the frame state, keep the configuration |
+| `llp4_parser_discard()` | drop the frame in progress |
+| `llp4_parser_payload()` / `_channel()` | accessors for the last frame |
+
+### Encoder
 
 ```c
-int result = llp_parser_process_byte(&parser, byte, millis());
+static void sink(void *ctx, uint8_t byte) { link_write(byte); }
 
-// Returns:
-//   1  → Frame complete, use parser.frame.payload
-//   0  → Incomplete (more bytes needed)
-//  -1  → Error (check parser.error_code)
+llp4_tx_t tx;
+llp4_tx_begin(&tx, channel, len, sink, NULL);   /* magic + LEN + CHANNEL */
+for (uint8_t i = 0; i < len; i++) {
+    llp4_tx_byte(&tx, data[i]);                 /* stuffing + CRC */
+}
+llp4_tx_end(&tx);                               /* CRC */
 ```
 
-### Extracting Data
+`llp4_frame_size(len)` (macro form `LLP4_FRAME_SIZE(len)`) gives the worst-case
+size, for reserving space in a ring before encoding. `llp4_encode()` is a
+convenience wrapper when the caller does have a buffer.
 
-```c
-// Build layer chain with FinalNode
-uint8_t payload[LLP_MAX_PAYLOAD];
-size_t payload_len = llp_build_final_payload(payload, sizeof(payload),
-                                              data, data_len);
+### Ring helper (optional)
 
-// Build transport frame
-uint8_t frame[LLP_MAX_FRAME_SIZE(payload_len)];
-size_t frame_len = llp_build_frame(frame, sizeof(frame),
-                                    payload, payload_len);
+`llp_v4_ring.h` provides a single-producer/single-consumer byte ring with 8-bit
+indices (atomic on 8-bit MCUs) for links up to 254 bytes: `llp4_ring_init`,
+`_push`, `_pop`, `_count`, `_free`, `_capacity`.
 
-// Parse: extract layer chain
-int result = llp_parser_process_byte(&parser, byte, millis());
+### Configuration
 
-// Parse: extract raw application data (skip all layer headers)
-uint8_t out[LLP_MAX_PAYLOAD];
-int out_len = llp_get_final_payload(&parser.frame, out, sizeof(out));
-// Returns: bytes of raw data, or -1 if malformed (no FinalNode)
-```
+| Macro | Default | Effect |
+|---|---|---|
+| `LLP4_DEFAULT_TIMEOUT_MS` | `2000` | Suggested inter-byte timeout |
+| `LLP4_ENABLE_STATS` | `0` | Parser counters (+6 bytes) |
+| `LLP4_CRC_TABLE` | `1` | 16-nibble CRC table (flash on AVR) vs bitwise |
 
-### Error Codes
+## Memory Footprint
 
-```c
-LLP_ERR_OK              = 0x00  // No error
-LLP_ERR_CHECKSUM        = 0x01  // CRC mismatch
-LLP_ERR_PAYLOAD_LEN     = 0x02  // Length > LLP_MAX_PAYLOAD
-LLP_ERR_TIMEOUT         = 0x03  // Inter-byte timeout exceeded
-LLP_ERR_SYNC            = 0x04  // Invalid escape or resync
-LLP_ERR_BUFFER_FULL     = 0x05  // Internal buffer overflow
-LLP_ERR_TRANSFORM_LAYER = 0x06  // Cannot traverse transform layer
-LLP_ERR_MALFORMED_LAYER = 0x07  // Malformed layer chain
-```
+<!-- LLP4-SIZE-TABLE:BEGIN -->
+| Target | Profile | `sizeof(parser)` | `sizeof(tx)` | Core flash |
+|---|---|---:|---:|---:|
+| ATmega328P | `micro` | 17 B | 6 B | 622 B |
+| ATmega328P | `micro-bits` | 17 B | 6 B | 564 B |
+| ATmega328P | `stats` | 23 B | 6 B | 622 B |
+| x86-64 (host) | `micro` | 24 B | 24 B | 639 B |
+| x86-64 (host) | `micro-bits` | 24 B | 24 B | 621 B |
+| x86-64 (host) | `stats` | 32 B | 24 B | 638 B |
 
-### Statistics
+_Generated by `scripts/measure_v4.py`. "Core flash" is the code the v4 core adds over an empty build (encode + parse + CRC), not a full application._
+<!-- LLP4-SIZE-TABLE:END -->
 
-```c
-uint32_t frames_ok, frames_error, timeouts;
-llp_get_stats(&parser, &frames_ok, &frames_error, &timeouts);
-llp_reset_stats(&parser);
-```
-
----
+Regenerate with `python3 scripts/measure_v4.py --update-readme`. CI fails if this
+table drifts, if the parser exceeds 20 B on AVR or if the core flash exceeds
+800 B.
 
 ## Quick Start
 
-### 1. Include the library
-
 ```c
-#include "llp_protocol.h"
-```
+#include "llp_v4.h"
 
-### 2. Initialize parser
+uint8_t payload[64];
+llp4_parser_t parser;
 
-```c
-llp_parser_t parser;
-llp_parser_init(&parser);
-```
+void link_init(void) { llp4_parser_init(&parser, payload, sizeof payload, 2000); }
 
-### 3. Process incoming bytes
-
-```c
-void loop() {
-    while (Serial.available()) {
-        uint8_t byte = Serial.read();
-        int result = llp_parser_process_byte(&parser, byte, millis());
-
-        if (result == 1) {
-            // Frame received successfully
-            uint8_t data[LLP_MAX_PAYLOAD];
-            int len = llp_get_final_payload(&parser.frame, data, sizeof(data));
-            if (len > 0) {
-                // data contains raw application payload
-            }
-        } else if (result == -1) {
-            // Error: check parser.error_code
-        }
+void link_rx_byte(uint8_t b, uint16_t now_ms) {
+    if (llp4_parser_feed(&parser, b, now_ms) == LLP4_EV_FRAME) {
+        uint8_t len;
+        const uint8_t *data = llp4_parser_payload(&parser, &len);
+        /* use data[0..len) here, and only here: it is a validated frame */
     }
 }
 ```
 
-### 4. Send a response (optional)
-
-```c
-void send_response(const uint8_t* data, uint16_t len) {
-    uint8_t payload[LLP_MAX_PAYLOAD];
-    size_t payload_len = llp_build_final_payload(payload, sizeof(payload),
-                                                  data, len);
-
-    uint8_t frame[LLP_MAX_FRAME_SIZE(payload_len)];
-    size_t frame_len = llp_build_frame(frame, sizeof(frame),
-                                       payload, (uint16_t)payload_len);
-
-    Serial.write(frame, frame_len);
-}
-```
-
----
+Send: `llp4_encode(0, text, len, out, sizeof out)` or stream with `llp4_tx_*`.
 
 ## Examples
 
-### Minimal UART Echo
+Located at [`examples/v4/`](examples/v4/) (built in CI):
 
-Located at `examples/minimal_uart/minimal_uart.ino`:
-- Receives frames via Serial
-- Echoes received data back
+- [`avr_baremetal/`](examples/v4/avr_baremetal/main.c) — ATmega328P with UART
+  interrupt rings and a streaming sink; complete application in ~2 KB of flash.
+- [`host_posix/`](examples/v4/host_posix/host_posix.c) — file descriptor / TCP
+  adapter with `--selftest` (roundtrips + noise) used by CI.
 
-### Request-Response with Retries
-
-Located at `examples/request_response/request_response.ino`:
-- Sends commands with ID and waits for ACK
-- Retries up to 3 times on timeout
-- Manages up to 5 pending requests
-
----
+Integration guide (context rules, sizing, RS-485, text-over-LLP):
+[`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 
 ## Testing
 
-### Run all tests
-
 ```bash
-platformio test -e test -v
+platformio test -e test -v          # 18 Unity tests (core + conformance + ring)
+python3 scripts/gen_vectors_v4.py --check
+sh scripts/check_robustness.sh      # property fuzzer + noise channel
+sh scripts/check_examples.sh        # builds/runs the examples
 ```
-
-**Expected output:** `90 Tests 0 Failures 0 Ignored OK`
-
-### Test categories
 
 | Suite | Tests | Description |
-|-------|-------|-------------|
-| `test_parser_init.c` | 5 | Parser initialization and reset |
-| `test_frame_builder.c` | 11 | Frame construction and byte stuffing |
-| `test_parser_process.c` | 11 | Byte-by-byte parsing and error handling |
-| `test_crc.c` | 8 | CRC16-CCITT validation |
-| `test_spec_vectors.c` | 55 | Spec conformance (199 vectors total) |
+|---|---|---|
+| `test_v4.c` | 13 | Core behaviour + all 29 conformance vectors |
+| `test_v4_ring.c` | 5 | Ring helper |
 
-### Spec vector categories
+Additional checks run by CI:
 
-- **Transport**: valid, crc, stuffing, resync, truncation, timeout
-- **Layers**: passthrough, transform, malformed, traversal
-- **Parser**: incremental, fragmented, recovery
-
-### Cross-language testing
-
-```bash
-gcc -std=c99 -I include -o /tmp/llp_cross_gen tools/cross_test_generate.c
-/tmp/llp_cross_gen /tmp/llp_cross
-```
-
----
+- **Vectors**: `scripts/gen_vectors_v4.py` self-checks every vector against the
+  reference implementation and regenerates the C fixture (`test/v4_vectors_generated.h`).
+- **Fuzzer** (`tools/fuzz_v4.c`): four input distributions, five invariants,
+  AddressSanitizer + UBSan. 600 000 inputs across three seeds.
+- **Noise channel** (`tools/noise_report.c`): bit flips, drops, inserts and
+  bursts. Results in [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
+- **Memory footprint**: budget gate + README table check (`scripts/measure_v4.py`).
+- **Examples**: `avr-gcc` compile + host self-test.
 
 ## Project Structure
 
 ```
 llp-protocol/
 ├── include/
-│   └── llp_protocol.h          # Single-header library (~470 lines)
-├── src/
-│   └── llp_protocol.c           # Standalone compilation verification
-├── test/
-│   ├── test_main.c             # Test runner (90 tests)
-│   ├── test_spec_common.h      # Spec test utilities
-│   ├── test_spec_vectors.c      # 199 spec conformance vectors
-│   ├── test_parser_init.c       # 5 tests
-│   ├── test_frame_builder.c     # 11 tests
-│   ├── test_parser_process.c    # 11 tests
-│   └── test_crc.c               # 8 tests
-├── tools/
-│   └── cross_test_generate.c    # Cross-language test vector generator
-├── examples/
-│   ├── minimal_uart/            # Basic UART echo
-│   └── request_response/         # Request-response with retries
+│   ├── llp_v4.h                # wire format 4.0.0 (parser + streaming encoder)
+│   └── llp_v4_ring.h           # optional SPSC byte ring
 ├── docs/
-│   └── PROTOCOL.md              # Protocol specification
-├── platformio.ini                # Multi-platform build config
-├── library.properties            # Arduino Library Manager metadata
-├── CHANGELOG.md
-├── README.md
-├── STRUCTURE.md
-├── TESTING.md
-├── BUGS.md
-└── LICENSE
+│   ├── SPEC-v4.md              # normative specification
+│   ├── DECISIONS.md            # ADR log
+│   ├── WHY-LLP.md              # comparison with COBS/SLIP/HDLC/Modbus
+│   ├── CONFORMANCE.md          # vector schema + checklist
+│   ├── INTEGRATION.md          # how to wire it to a link
+│   ├── ROBUSTNESS.md           # measured behaviour under noise
+│   └── PROTOCOL.md             # v3.1.0 specification (historical)
+├── examples/v4/                # AVR bare-metal + POSIX/TCP adapters
+├── spec/vectors/v4/            # language-independent conformance vectors
+├── scripts/                    # generators, measurements, checks
+├── tools/                      # fuzzer + noise report
+├── test/                       # Unity suite (18 tests)
+└── src/                        # compile smoke test for every environment
 ```
 
----
+## Migrating from v3
 
-## Configuration
+**v4 is not wire compatible with v3.** The v3 implementation is preserved in
+branch `feature/v3.1.0` (commit `422ff17`); there is no dual-format mode.
 
-Override defaults with build flags:
+| | v3.1.0 | v4.0.0 |
+|---|---|---|
+| Header | `MAGIC + LEN(2) + layer chain` | `MAGIC + LEN(1) + CHANNEL(1)` |
+| Minimum frame | 7 bytes | 6 bytes |
+| Payload | layer chain with metadata | opaque bytes |
+| Routing | layer IDs + metadata | `CHANNEL` byte |
+| Stuffing / CRC / magic | `0xAA` escape, CRC16-CCITT, `AA 55` | **unchanged** |
+| Parser RAM (AVR) | 77 B (payload 64 embedded) | 17 B + caller buffer |
+| Encoder | builds a frame in RAM | streams, no frame buffer |
 
-```bash
--DLLP_MAX_PAYLOAD=256       # Default: 128
--DLLP_FRAME_TIMEOUT_MS=3000 # Default: 2000
-```
+API mapping:
 
----
+| v3 | v4 |
+|---|---|
+| `llp_parser_init(&p)` | `llp4_parser_init(&p, buf, cap, timeout_ms)` |
+| `llp_parser_process_byte(&p, b, now)` | `llp4_parser_feed(&p, b, now_ms)` |
+| `llp_get_final_payload_ptr(&p.frame, &len)` | `llp4_parser_payload(&p, &len)` |
+| `llp_build_final_payload()` + `llp_build_frame()` | `llp4_tx_begin/byte/end` or `llp4_encode()` |
+| `p.error_code` | `p.error` (`LLP4_ERR_*`) |
+
+A written migration guide per consumer lives in the consumers' repositories
+(`grbl-llp`, `esp8266-llp-bridge`).
 
 ## License
 
-MIT — See [LICENSE](LICENSE)
+MIT — see [LICENSE](LICENSE).
 
-LLP Specification v3.1.0 — Copyright © 2026 Flamingo Communications
+LLP Specification v4.0.0 — Copyright © 2026 Flamingo Communications
 
-This specification is maintained as the authoritative reference for the LLP protocol. All implementations should reference this document as the canonical behaviour definition.
+## Credits
 
----
+- Grbl by Sungeun "Sonny" Jeon (@chamnit) — the CNC firmware this protocol was
+  built for.

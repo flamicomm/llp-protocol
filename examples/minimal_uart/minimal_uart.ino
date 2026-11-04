@@ -1,5 +1,5 @@
 /**
- * LLP Protocol v3.0.0 — Minimal UART Example (Arduino)
+ * LLP Protocol v3.1.0 — Minimal UART Example (Arduino)
  *
  * Demonstrates the simplest usage of LLP v3:
  * - Receive frames via Serial (UART)

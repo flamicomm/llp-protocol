@@ -1,0 +1,84 @@
+{
+  "spec": "llp/4.0.0",
+  "description": "Error handling: CRC, length and resync cases.",
+  "generated_by": "scripts/gen_vectors_v4.py",
+  "cases": [
+    {
+      "id": "err-bad-crc-then-good",
+      "kind": "decode",
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_CRC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa550300906b0a08dbaa5507014731205831300ae427"
+    },
+    {
+      "id": "err-payload-len-over-capacity",
+      "kind": "decode",
+      "capacity": 64,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_LEN"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa55640078787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878680faa5507014731205831300ae427",
+      "note": "LEN > capacity is rejected as soon as LEN is read"
+    },
+    {
+      "id": "err-lone-aa-is-not-an-error",
+      "kind": "decode",
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa00aa5507014731205831300ae427",
+      "note": "0xAA 0x00 in WAIT_MAGIC2 is ignored; no error is reported"
+    },
+    {
+      "id": "err-truncated-then-new-frame",
+      "kind": "decode",
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_SYNC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5540006faa5507014731205831300ae427",
+      "note": "incomplete frame with LEN=64 meets a new magic: resync"
+    }
+  ]
+}

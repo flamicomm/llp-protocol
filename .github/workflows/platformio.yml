@@ -20,6 +20,26 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Check wire-format v4 conformance vectors
+        run: |
+          python3 scripts/gen_vectors_v4.py --check
+          python3 scripts/gen_vectors_v4.py --emit-c /tmp/v4_vectors_generated.h
+          diff -u test/v4_vectors_generated.h /tmp/v4_vectors_generated.h
+
+      - name: Install AVR toolchain (and build the AVR demo)
+        run: pio run -e arduino_uno
+
+      - name: Check v4 memory footprint
+        run: |
+          python3 scripts/measure_v4.py --budget --toolchains avr,host
+          python3 scripts/measure_v4.py --check-readme --toolchains avr,host
+
+      - name: Build and run the v4 examples
+        run: sh scripts/check_examples.sh
+
+      - name: Robustness (property fuzzer + noise channel)
+        run: sh scripts/check_robustness.sh
+
       - name: Install lcov
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lcov
 

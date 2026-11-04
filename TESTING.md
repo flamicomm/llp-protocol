@@ -1,4 +1,4 @@
-# Testing Guide — LLP Protocol v3.0.0
+# Testing Guide — LLP Protocol 3.1.0
 
 ## Prerequisites
 
@@ -59,6 +59,34 @@ Compile and run:
 ```bash
 gcc -std=c99 -I include -o /tmp/llp_cross_gen tools/cross_test_generate.c
 /tmp/llp_cross_gen [output_dir]
+```
+
+## Hardware Tests (30 test cases)
+
+Run the automated test suite against an Arduino Nano connected via USB:
+
+```bash
+# Build, upload, and test with defaults
+python3 test/hardware_test/test_hardware.py
+
+# Specify a different port
+python3 test/hardware_test/test_hardware.py --port /dev/ttyUSB1
+
+# Skip build/upload if firmware is already loaded
+python3 test/hardware_test/test_hardware.py --no-upload
+```
+
+The hardware test suite validates the library on real hardware:
+- **Valid frame parsing**: empty, single bytes, multi-byte, stuffed bytes
+- **Error detection**: CRC mismatch, invalid escapes, unstuffed magic bytes
+- **Noise recovery**: frames arriving after garbage bytes
+- **Sequential frames**: multiple frames without reset
+- **Zero-copy API**: `llp_get_final_payload_ptr()` correctness
+- **Long payloads**: up to 32 bytes of application data
+
+Expected output:
+```
+Results: 30/30 passed — ALL TESTS PASSED
 ```
 
 ## Coverage

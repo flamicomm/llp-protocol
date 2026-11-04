@@ -1,5 +1,10 @@
 # Protocol Specification — LLP v3.1.0
 
+> **Status:** historical. This document describes wire format **v3.1.0**, which
+> was superseded by **[`SPEC-v4.md`](SPEC-v4.md)**. The v3.1.0 implementation is
+> available in branch `feature/v3.1.0`; it is kept here for reference and for projects that
+> still speak the old wire.
+
 ## Wire Format
 
 ```

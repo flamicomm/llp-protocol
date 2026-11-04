@@ -1,0 +1,82 @@
+{
+  "spec": "llp/4.0.0",
+  "description": "Encoder conformance: (channel, payload) -> exact frame bytes.",
+  "generated_by": "scripts/gen_vectors_v4.py",
+  "cases": [
+    {
+      "id": "enc-empty-channel0",
+      "kind": "encode",
+      "channel": 0,
+      "payload": "",
+      "frame": "aa55000023b3"
+    },
+    {
+      "id": "enc-text-ok",
+      "kind": "encode",
+      "channel": 0,
+      "payload": "6f6b0a",
+      "frame": "aa5503006f6b0a08db"
+    },
+    {
+      "id": "enc-channel-1-command",
+      "kind": "encode",
+      "channel": 1,
+      "payload": "4731205831300a",
+      "frame": "aa5507014731205831300ae427"
+    },
+    {
+      "id": "enc-channel-255",
+      "kind": "encode",
+      "channel": 255,
+      "payload": "70696e67",
+      "frame": "aa5504ff70696e677e9a"
+    },
+    {
+      "id": "enc-payload-magic-and-escape",
+      "kind": "encode",
+      "channel": 0,
+      "payload": "aa5500aa55",
+      "frame": "aa550500aa005500aa00558848",
+      "note": "payload contains a full magic pattern; it must be escaped"
+    },
+    {
+      "id": "enc-payload-all-aa",
+      "kind": "encode",
+      "channel": 0,
+      "payload": "aaaaaaaaaaaaaaaa",
+      "frame": "aa550800aa00aa00aa00aa00aa00aa00aa00aa00b6bb",
+      "note": "worst-case stuffing: every payload byte doubles"
+    },
+    {
+      "id": "enc-len-field-stuffed",
+      "kind": "encode",
+      "channel": 0,
+      "payload": "7878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878",
+      "frame": "aa55aa00007878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878def3",
+      "note": "LEN = 170 = 0xAA, so the LEN field itself must be stuffed"
+    },
+    {
+      "id": "enc-channel-field-stuffed",
+      "kind": "encode",
+      "channel": 170,
+      "payload": "6869",
+      "frame": "aa5502aa00686966b7",
+      "note": "CHANNEL = 0xAA, so the CHANNEL field must be stuffed"
+    },
+    {
+      "id": "enc-crc-field-stuffed",
+      "kind": "encode",
+      "channel": 0,
+      "payload": "64",
+      "frame": "aa55010064aa00af",
+      "note": "CRC contains a 0xAA byte, so a CRC byte must be stuffed"
+    },
+    {
+      "id": "enc-max-payload",
+      "kind": "encode",
+      "channel": 7,
+      "payload": "00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00",
+      "frame": "aa55ff0700ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00fb50"
+    }
+  ]
+}

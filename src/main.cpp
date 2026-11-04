@@ -1,44 +1,37 @@
 /**
- * Minimal LLP Protocol sketch — compiles on all supported platforms.
- * Demonstrates frame building and parsing for CI verification.
+ * Minimal LLP v4 sketch — compiles on every supported platform.
+ *
+ * This is the Arduino entry point of the library repository: it exists so the
+ * PlatformIO environments in platformio.ini build the v4 core for AVR, ESP8266,
+ * ESP32 and STM32 (see also src/llp_v4_check.c).
  */
 
 #include <Arduino.h>
-#include <llp_protocol.h>
-#include <string.h>
 
-static llp_parser_t parser;
+#include "llp_v4.h"
 
-void setup() {
-    llp_parser_init(&parser);
+static llp4_parser_t parser;
+static uint8_t payload[64];
 
-    const char* msg = "Hello LLP";
-
-    uint8_t final_payload[32];
-    uint8_t tx_buffer[64];
-
-    size_t payload_len = llp_build_final_payload(
-        final_payload,
-        sizeof(final_payload),
-        (const uint8_t*)msg,
-        (uint16_t)strlen(msg)
-    );
-
-    size_t frame_len = llp_build_frame(
-        tx_buffer,
-        sizeof(tx_buffer),
-        final_payload,
-        (uint16_t)payload_len
-    );
-
-    for (size_t i = 0; i < frame_len; i++) {
-        llp_parser_process_byte(
-            &parser,
-            tx_buffer[i],
-            millis()
-        );
-    }
+static void sink(void *ctx, uint8_t byte)
+{
+    (void)ctx;
+    (void)byte;
 }
 
-void loop() {
+void setup()
+{
+    uint8_t frame[128];
+    size_t len;
+
+    llp4_parser_init(&parser, payload, (uint8_t)sizeof(payload),
+                     LLP4_DEFAULT_TIMEOUT_MS);
+
+    len = llp4_encode(0, (const uint8_t *)"Hello LLP", 9, frame, sizeof(frame));
+    (void)len;
+}
+
+void loop()
+{
+    /* Nothing to do: this sketch only checks that the library compiles. */
 }

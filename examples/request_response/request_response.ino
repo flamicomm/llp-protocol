@@ -1,5 +1,5 @@
 /**
- * LLP Protocol v3.0.0 — Request-Response Pattern (Arduino)
+ * LLP Protocol v3.1.0 — Request-Response Pattern (Arduino)
  *
  * Demonstrates a request-response pattern with timeout and retries.
  * Since v3.0.0 removed type/id from the transport layer, this example
