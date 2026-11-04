@@ -2,7 +2,9 @@
 
 Architecture Decision Records for the v4 wire format and library. Each record
 states the context, the decision, the consequences we accept, and what was
-rejected (and why). The normative result lives in [`SPEC-v4.md`](SPEC-v4.md).
+rejected (and why). The normative result lives in the specification repository
+([`llp-spec`](https://github.com/flamicomm/llp-spec/blob/main/docs/SPEC-v4.md));
+see ADR-011 for that ownership split.
 
 Format: one record per decision, newest last. A record is **immutable** once
 accepted; superseding it means writing a new one.
@@ -234,3 +236,41 @@ the CRC, fixed little-endian.
   CRC pair (documented and covered by vectors).
 - Reading a frame with a struct cast is still wrong (packing + stuffing); the
   API is byte-at-a-time.
+
+---
+
+## ADR-011 — `llp-spec` is the normative home of the wire specification
+
+**Context.** Two repositories documented the same wire format. `llp-protocol`
+held `docs/SPEC-v4.md` and the C implementation; `llp-spec` presented itself as
+the single source of truth for third parties and already carried the 199-vector
+corpus, the JSON schema and the Python runner. The v4 release made the split
+visible: the vectors that the specification promised were not the ones the
+library tested, and the two descriptions of the same bytes could drift.
+
+**Decision.** `llp-spec` owns everything that defines conformance: the normative
+specification (`docs/SPEC-v4.md`), the vector contract (`docs/CONFORMANCE.md`),
+the corpus (`vectors/`), the schema, and the canonical Python reference
+(`reference/llp_v4.py`). This repository owns the implementation and its
+evidence: `include/llp_v4.h`, the ADR log, the measurements and the integration
+guides.
+
+The move is compatible at the link level: `docs/SPEC-v4.md` and
+`docs/CONFORMANCE.md` remain here as pointers, so the 20 existing references —
+including the one in the vendored `include/llp_v4.h` — keep resolving and the
+header does not have to be re-vendored into consumers.
+
+**Consequences.**
+- The wire format is defined once. A change to it is a change to `llp-spec`
+  plus a new ADR here; the reference implementation is vendored there with a
+  sha256 pin, and a scheduled job reports drift.
+- This repository's vectors (`spec/vectors/v4/`) become a *fixture* for the C
+  suite rather than a second contract. The convergence is a follow-up: the C
+  tests consume the header generated from `llp-spec`, and the duplicated
+  generator is deleted.
+- Nothing about the bytes changes. This ADR reallocates documentation
+  ownership only; the wire decisions are ADR-001…ADR-010.
+
+**Rejected.** Keeping two normative copies and relying on review to keep them in
+sync: the v3 corpus already drifted (the README claimed 199 vectors while its own
+table summed 189). A pointer cannot drift.
