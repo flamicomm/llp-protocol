@@ -244,7 +244,7 @@ convention, so that the base framing stays minimal.
 | Parser states | 7 | 7 |
 
 v4 is **not wire compatible** with v3.1.0; there is no dual-format mode. The v3
-implementation remains available as tag `v3.1.0`.
+implementation remains available in branch `feature/v3.1.0`.
 
 Rationale for each change is recorded in [`DECISIONS.md`](DECISIONS.md).
 

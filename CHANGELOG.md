@@ -19,8 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Wire format 4.0.0 — breaking change.** The frame keeps the magic (`AA 55`),
 the byte stuffing and the CRC16-CCITT, but replaces the 2-byte length and the
 layer chain with a fixed 6-byte header: `MAGIC + LEN(1) + CHANNEL(1)`.
-v4 is **not** wire compatible with v3.1.0; the v3 implementation is available at
-tag `v3.1.0` and there is no dual-format mode.
+v4 is **not** wire compatible with v3.1.0; the v3 implementation is preserved in
+branch `feature/v3.1.0` (commit `422ff17`) and there is no dual-format mode.
 
 ### Breaking
 - Frame header is now `MAGIC + LEN(1) + CHANNEL(1)`; the layer chain
@@ -31,7 +31,7 @@ tag `v3.1.0` and there is no dual-format mode.
 - The encoder streams through a write callback (`llp4_tx_begin/byte/end`); the
   old `llp_build_final_payload()` + `llp_build_frame()` pair is gone.
 - Public header is `include/llp_v4.h`. `include/llp_protocol.h` (v3) and its
-  test suite were removed from the tree; they live at tag `v3.1.0`.
+  test suite were removed from the tree; they live in branch `feature/v3.1.0`.
 
 ### Added
 - **Wire format 4.0.0 specification** (`docs/SPEC-v4.md`): frame layout, parser

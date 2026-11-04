@@ -281,8 +281,8 @@ llp-protocol/
 
 ## Migrating from v3
 
-**v4 is not wire compatible with v3.** The v3.1.0 implementation is available at
-tag `v3.1.0`; there is no dual-format mode.
+**v4 is not wire compatible with v3.** The v3 implementation is preserved in
+branch `feature/v3.1.0` (commit `422ff17`); there is no dual-format mode.
 
 | | v3.1.0 | v4.0.0 |
 |---|---|---|
