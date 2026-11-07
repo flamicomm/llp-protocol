@@ -157,6 +157,27 @@ LLP frame (channel 0, payload "G1 X10\n")  ->  line buffer  ->  command parser
 This is what `grbl-llp` does: LLP only guarantees the bytes, the command parser
 is unchanged. The line buffer can be the same buffer the LLP parser writes into.
 
+## Reliable command channel (Profile R1, optional)
+
+A lost command frame stalls a sender that waits for an application answer, and
+blind retransmission can execute a command twice. Profile R1 adds a sequence
+number, an ACK and duplicate suppression on top of two channels:
+
+```
+COMMAND (channel 1):  [SEQ][DATA...]
+ACK     (channel 2):  [SEQ]
+```
+
+The normative text is in
+[llp-spec `docs/RELIABILITY.md`](https://github.com/flamicomm/llp-spec/blob/main/docs/RELIABILITY.md);
+the C state machines are in
+[`llp_v4_rel.h`](../include/llp_v4_rel.h) and
+[`RELIABILITY.md`](RELIABILITY.md) explains how to wire them.
+
+The rule that is easy to get wrong: **check that the payload fits before
+consuming the sequence number**. If it does not fit, do not ACK, so the sender
+retries instead of the command being lost.
+
 ## Testing your integration
 
 1. Run the conformance vectors first (`docs/CONFORMANCE.md`) — they validate the

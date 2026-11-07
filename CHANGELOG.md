@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `llp_v4_rel.h`: optional **Profile R1**, a reliable command channel on top of
+  the v4 framing (sequence number, ACK, duplicate suppression, retransmission).
+  Normative text: llp-spec `docs/RELIABILITY.md`. Wire layout pinned by the new
+  encode vectors `enc-rel-*`; behaviour covered by `test/test_v4_rel.c`
+  (traces T1–T8).
+
 ### Planned
 - RS485 multi-node example
 - LoRa integration example
