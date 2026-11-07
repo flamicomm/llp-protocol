@@ -9,6 +9,10 @@ This page documents the C implementation shipped here
 ([`../include/llp_v4_rel.h`](../include/llp_v4_rel.h)) and how to wire it into a
 link. It does not add requirements: when in doubt, the specification wins.
 
+A Python implementation of the same two state machines lives in
+[`../scripts/llp_v4_rel.py`](../scripts/llp_v4_rel.py) (vendored from llp-spec's
+reference) and is used by serial tooling such as `grbl-llp`'s `stream_gcode.py`.
+
 ## What the header provides
 
 | Piece | Type | Responsibility |

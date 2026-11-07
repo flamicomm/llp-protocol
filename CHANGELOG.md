@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `scripts/llp_v4_rel.py`: Python counterpart of the profile (vendored from the
+  llp-spec reference), used by serial tools.
 - `llp_v4_rel.h`: optional **Profile R1**, a reliable command channel on top of
   the v4 framing (sequence number, ACK, duplicate suppression, retransmission).
   Normative text: llp-spec `docs/RELIABILITY.md`. Wire layout pinned by the new
