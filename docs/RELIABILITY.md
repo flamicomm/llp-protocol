@@ -22,6 +22,20 @@ injects a 16-bit millisecond clock) or buffering of application data.
 ```
 COMMAND (channel 1):  [SEQ][DATA...]      sender -> receiver
 ACK     (channel 2):  [SEQ]               receiver -> sender
+HELLO   (channel 3):  [SESSION]           sender -> receiver, resets dedup state
+```
+
+## Session start (important)
+
+`SEQ` is one byte, so a **restarted sender** (reboot, reconnect) would restart
+its sequence and could collide with the receiver's `last_seq`: the first command
+would be ACKed and silently dropped. Before the first command of a session the
+sender must emit a hello on channel 3 (twice is recommended: it is not
+acknowledged), and the receiver must reset its dedup state when it sees one:
+
+```c
+/* channel 3 frame from the sender */
+llp4_rel_rx_init(&rx);      /* forget last_seq: new session */
 ```
 
 ## Sender recipe
@@ -91,7 +105,7 @@ A receiver-only target (the AVR firmware) only instantiates the 6-byte state.
 
 ## Tests
 
-[`../test/test_v4_rel.c`](../test/test_v4_rel.c) implements the eight
+[`../test/test_v4_rel.c`](../test/test_v4_rel.c) implements the nine
 conformance traces of the specification (§11) plus the unit behaviour:
 retransmission keeps the payload byte-identical, exhaustion never reports
 delivery, stale ACKs are ignored, the sequence wraps at 256, and the profile

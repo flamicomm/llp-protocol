@@ -45,6 +45,12 @@ extern "C" {
 /** Acknowledgement frames (receiver -> sender). */
 #define LLP4_REL_CH_ACK 2u
 
+/** Session marker (sender -> receiver): the duplicate-suppression state must be
+ * reset before the first command of a new session. A rebooted sender restarts
+ * its SEQ, and without this marker the first command after a reboot could
+ * collide with the receiver's `last_seq` and be discarded. */
+#define LLP4_REL_CH_HELLO 3u
+
 /** Maximum DATA bytes per command frame (payload = SEQ + DATA <= 64). */
 #define LLP4_REL_MAX_DATA 63u
 

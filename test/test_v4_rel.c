@@ -402,8 +402,7 @@ void test_rel_trace_t7_unknown_ack(void)
 }
 
 /* T8: a duplicate arriving after the sender gave up is still acknowledged and
-       still not delivered twice. */
-void test_rel_trace_t8_late_duplicate_after_exhaustion(void)
+       still not delivered twice. */void test_rel_trace_t8_late_duplicate_after_exhaustion(void)
 {
     llp4_rel_tx_t tx;
     llp4_rel_rx_t rx;
@@ -428,6 +427,23 @@ void test_rel_trace_t8_late_duplicate_after_exhaustion(void)
     }
     TEST_ASSERT_EQUAL_UINT16(1, rx.delivered);
     TEST_ASSERT_EQUAL_UINT16(4, rx.duplicates);
+}
+
+/* T9: hello (channel 3) resets the session, so a restarted sender that reuses a
+       SEQ is not mistaken for a duplicate. */
+void test_rel_trace_t9_hello_resets_session(void)
+{
+    llp4_rel_rx_t rx;
+
+    llp4_rel_rx_init(&rx);
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_rx_accept(&rx, 5));
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_rx_accept(&rx, 5));   /* duplicate */
+    TEST_ASSERT_EQUAL_UINT16(1, rx.duplicates);
+
+    llp4_rel_rx_init(&rx);                                   /* hello frame */
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_rx_accept(&rx, 5));   /* new session */
+    TEST_ASSERT_EQUAL_UINT16(1, rx.delivered);
+    TEST_ASSERT_EQUAL_UINT16(0, rx.duplicates);
 }
 
 /* ------------------------------------------------------------------------- */

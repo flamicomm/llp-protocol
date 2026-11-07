@@ -144,6 +144,12 @@ def build_encode_vectors() -> list[dict]:
             b"\x07",
             note="Profile R1: ACK frame payload is exactly [SEQ] on channel 2",
         ),
+        encode_case(
+            "enc-rel-hello-session",
+            3,
+            b"\x2a",
+            note="Profile R1: session marker on channel 3 (resets dedup state)",
+        ),
         encode_case("enc-channel-255", 255, b"ping"),
         encode_case(
             "enc-payload-magic-and-escape",

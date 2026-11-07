@@ -49,6 +49,14 @@
       "note": "Profile R1: ACK frame payload is exactly [SEQ] on channel 2"
     },
     {
+      "id": "enc-rel-hello-session",
+      "kind": "encode",
+      "channel": 3,
+      "payload": "2a",
+      "frame": "aa5501032af353",
+      "note": "Profile R1: session marker on channel 3 (resets dedup state)"
+    },
+    {
       "id": "enc-channel-255",
       "kind": "encode",
       "channel": 255,

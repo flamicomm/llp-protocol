@@ -47,6 +47,7 @@ void test_rel_trace_t5_wrap(void);
 void test_rel_trace_t6_exhaustion(void);
 void test_rel_trace_t7_unknown_ack(void);
 void test_rel_trace_t8_late_duplicate_after_exhaustion(void);
+void test_rel_trace_t9_hello_resets_session(void);
 void test_rel_payload_fits_one_frame(void);
 void test_rel_roundtrip_command_and_ack(void);
 
@@ -100,6 +101,7 @@ int main(void)
     RUN_TEST(test_rel_trace_t6_exhaustion);
     RUN_TEST(test_rel_trace_t7_unknown_ack);
     RUN_TEST(test_rel_trace_t8_late_duplicate_after_exhaustion);
+    RUN_TEST(test_rel_trace_t9_hello_resets_session);
     RUN_TEST(test_rel_payload_fits_one_frame);
     RUN_TEST(test_rel_roundtrip_command_and_ack);
 
