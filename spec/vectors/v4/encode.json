@@ -25,6 +25,38 @@
       "frame": "aa5507014731205831300ae427"
     },
     {
+      "id": "enc-rel-command-seq0",
+      "kind": "encode",
+      "channel": 1,
+      "payload": "0047312058300a",
+      "frame": "aa5507010047312058300a7647",
+      "note": "Profile R1: command frame payload is [SEQ][DATA] on channel 1"
+    },
+    {
+      "id": "enc-rel-command-seq-stuffed",
+      "kind": "encode",
+      "channel": 1,
+      "payload": "aa47312058300a",
+      "frame": "aa550701aa0047312058300a3771",
+      "note": "Profile R1: SEQ 0xAA is payload, so the sequence byte is stuffed"
+    },
+    {
+      "id": "enc-rel-ack-seq7",
+      "kind": "encode",
+      "channel": 2,
+      "payload": "07",
+      "frame": "aa550102070d95",
+      "note": "Profile R1: ACK frame payload is exactly [SEQ] on channel 2"
+    },
+    {
+      "id": "enc-rel-hello-session",
+      "kind": "encode",
+      "channel": 3,
+      "payload": "2a",
+      "frame": "aa5501032af353",
+      "note": "Profile R1: session marker on channel 3 (resets dedup state)"
+    },
+    {
       "id": "enc-channel-255",
       "kind": "encode",
       "channel": 255,

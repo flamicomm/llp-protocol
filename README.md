@@ -53,6 +53,7 @@ that receives `X-90.5` instead of `X-10.5` cuts the wrong path.
 
 **Why this and not COBS/SLIP/HDLC?** See [`docs/WHY-LLP.md`](docs/WHY-LLP.md).
 **Integration guide:** [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
+**Reliable command channel (optional):** [`docs/RELIABILITY.md`](docs/RELIABILITY.md).
 
 ### Conformance
 
@@ -262,20 +263,22 @@ Additional checks run by CI:
 llp-protocol/
 ├── include/
 │   ├── llp_v4.h                # wire format 4.0.0 (parser + streaming encoder)
-│   └── llp_v4_ring.h           # optional SPSC byte ring
+│   ├── llp_v4_ring.h           # optional SPSC byte ring
+│   └── llp_v4_rel.h            # optional Profile R1: reliable command channel
 ├── docs/
-│   ├── SPEC-v4.md              # normative specification
+│   ├── SPEC-v4.md              # normative specification (pointer to llp-spec)
 │   ├── DECISIONS.md            # ADR log
 │   ├── WHY-LLP.md              # comparison with COBS/SLIP/HDLC/Modbus
 │   ├── CONFORMANCE.md          # vector schema + checklist
 │   ├── INTEGRATION.md          # how to wire it to a link
+│   ├── RELIABILITY.md          # Profile R1: sender/receiver state machines
 │   ├── ROBUSTNESS.md           # measured behaviour under noise
 │   └── PROTOCOL.md             # v3.1.0 specification (historical)
 ├── examples/v4/                # AVR bare-metal + POSIX/TCP adapters
 ├── spec/vectors/v4/            # language-independent conformance vectors
 ├── scripts/                    # generators, measurements, checks
 ├── tools/                      # fuzzer + noise report
-├── test/                       # Unity suite (18 tests)
+├── test/                       # Unity suite (core + Profile R1)
 └── src/                        # compile smoke test for every environment
 ```
 

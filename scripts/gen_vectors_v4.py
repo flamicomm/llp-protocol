@@ -126,6 +126,30 @@ def build_encode_vectors() -> list[dict]:
         encode_case("enc-empty-channel0", 0, b""),
         encode_case("enc-text-ok", 0, b"ok\n"),
         encode_case("enc-channel-1-command", 1, b"G1 X10\n"),
+        encode_case(
+            "enc-rel-command-seq0",
+            1,
+            b"\x00G1 X0\n",
+            note="Profile R1: command frame payload is [SEQ][DATA] on channel 1",
+        ),
+        encode_case(
+            "enc-rel-command-seq-stuffed",
+            1,
+            b"\xaaG1 X0\n",
+            note="Profile R1: SEQ 0xAA is payload, so the sequence byte is stuffed",
+        ),
+        encode_case(
+            "enc-rel-ack-seq7",
+            2,
+            b"\x07",
+            note="Profile R1: ACK frame payload is exactly [SEQ] on channel 2",
+        ),
+        encode_case(
+            "enc-rel-hello-session",
+            3,
+            b"\x2a",
+            note="Profile R1: session marker on channel 3 (resets dedup state)",
+        ),
         encode_case("enc-channel-255", 255, b"ping"),
         encode_case(
             "enc-payload-magic-and-escape",
