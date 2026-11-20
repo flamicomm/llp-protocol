@@ -1,11 +1,15 @@
 {
   "spec": "llp/4.0.0",
-  "description": "Error handling: CRC, length and resync cases.",
-  "generated_by": "scripts/gen_vectors_v4.py",
+  "schema_version": "2.0.0",
+  "category": "transport_errors",
+  "description": "Error handling: CRC, length and sync errors, and recovery after them.",
+  "generated_by": "tools/build_vectors.py",
   "cases": [
     {
-      "id": "err-bad-crc-then-good",
+      "id": "err-crc-payload-corrupted",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -20,11 +24,96 @@
         ],
         "timeouts": 0
       },
-      "frame": "aa550300906b0a08dbaa5507014731205831300ae427"
+      "frame": "aa5503006f940a08dbaa5507014731205831300ae427",
+      "note": "one payload bit flipped; the frame is discarded and the next one works"
     },
     {
-      "id": "err-payload-len-over-capacity",
+      "id": "err-crc-low-byte",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_CRC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5503006f6b0af7db"
+    },
+    {
+      "id": "err-crc-high-byte",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_CRC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5503006f6b0a0824"
+    },
+    {
+      "id": "err-crc-all-zeros",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_CRC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5503006f6b0a0000"
+    },
+    {
+      "id": "err-crc-len-tampered",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_CRC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5504006f6b0a0008db",
+      "note": "LEN changed and padded so the frame stays complete: the CRC catches it"
+    },
+    {
+      "id": "err-crc-channel-tampered",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_CRC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5503016f6b0a08db",
+      "note": "the CRC covers CHANNEL, so a rerouted frame is rejected"
+    },
+    {
+      "id": "err-len-over-capacity-64",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 64,
       "timeout_ms": 2000,
       "expect": {
@@ -43,8 +132,65 @@
       "note": "LEN > capacity is rejected as soon as LEN is read"
     },
     {
-      "id": "err-lone-aa-is-not-an-error",
+      "id": "err-len-over-capacity-4",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 4,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_LEN"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5505006162636465382b"
+    },
+    {
+      "id": "err-len-over-capacity-0",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 0,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_LEN"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa55010078177c",
+      "note": "a zero-capacity parser rejects every non-empty frame"
+    },
+    {
+      "id": "err-len-rejected-before-payload-stored",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 4,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "6162"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_LEN"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa55c80041414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141417f24aa5502016162f8f1",
+      "note": "no payload byte is stored before the length is validated"
+    },
+    {
+      "id": "err-bad-escape-01",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -54,15 +200,83 @@
             "payload": "4731205831300a"
           }
         ],
-        "errors": [],
+        "errors": [
+          "LLP_ERR_SYNC"
+        ],
         "timeouts": 0
       },
-      "frame": "aa00aa5507014731205831300ae427",
-      "note": "0xAA 0x00 in WAIT_MAGIC2 is ignored; no error is reported"
+      "frame": "aa550300aa01aa5507014731205831300ae427"
+    },
+    {
+      "id": "err-bad-escape-ff",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_SYNC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa550300aaffaa5507014731205831300ae427"
+    },
+    {
+      "id": "err-resync-magic-in-len-state",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_SYNC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa55aa5507014731205831300ae427",
+      "note": "a magic where LEN was expected aborts the frame and starts a new one"
+    },
+    {
+      "id": "err-resync-magic-in-crc-state",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "4731205831300a"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_SYNC"
+        ],
+        "timeouts": 0
+      },
+      "frame": "aa5503006f6b0a08aa5507014731205831300ae427",
+      "note": "a magic where CRC_H was expected resynchronises instead of corrupting"
     },
     {
       "id": "err-truncated-then-new-frame",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -78,7 +292,7 @@
         "timeouts": 0
       },
       "frame": "aa5540006faa5507014731205831300ae427",
-      "note": "incomplete frame with LEN=64 meets a new magic: resync"
+      "note": "an incomplete frame with LEN=64 meets a new magic: resync"
     }
   ]
 }

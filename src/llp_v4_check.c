@@ -7,6 +7,7 @@
  */
 
 #include "llp_v4.h"
+#include "llp_v4_rel.h"
 
 /* The low-RAM profile must stay tiny on the smallest targets. 17 bytes on AVR
  * with stats disabled; the bound leaves room for alignment differences. */
@@ -15,6 +16,16 @@ typedef char llp4_parser_size_check[(sizeof(llp4_parser_t) <= 32) ? 1 : -1];
 #else
 typedef char llp4_parser_size_check[(sizeof(llp4_parser_t) <= 24) ? 1 : -1];
 #endif
+
+/* Profile R1 state (docs/RELIABILITY.md): 76 bytes on AVR (no alignment
+ * padding), 78 on hosts (one byte of padding before `sent_ms`, one of tail
+ * padding). `scripts/measure_v4.py --budget` gates the AVR figure. */
+#if defined(__AVR__)
+typedef char llp4_rel_tx_size_check[(sizeof(llp4_rel_tx_t) == 76) ? 1 : -1];
+#else
+typedef char llp4_rel_tx_size_check[(sizeof(llp4_rel_tx_t) <= 78) ? 1 : -1];
+#endif
+typedef char llp4_rel_rx_size_check[(sizeof(llp4_rel_rx_t) == 6) ? 1 : -1];
 
 /* Exercised by the conformance tests on the host; here it only has to link. */
 static llp4_parser_t llp4_check_parser;

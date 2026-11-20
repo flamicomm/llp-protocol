@@ -1,0 +1,10 @@
+# sha256 of every file in vectors/, for consumers that vendor the corpus.
+# Regenerate with: python3 tools/build_vectors.py
+aadc6914f21ef94754e2d3ec978a6107b5599300bd742782720cffa2d818f488  channels.json
+84af68acadce7773ec40d76cb7dc4fcfc9e88695180fa24d1d46285b7b5cae8c  decode.json
+0148b0c133968619b47bdae1a7709343ae6e39529c935969ecf6ce22c02675cc  encode.json
+f554dc78045ac9548fd3c4c78708cbddd8b65259f517f7ed06bd81ea6bedc560  errors.json
+aeb993957f892b73c9d5652e09dd27856b383a777bdec16e9d07f95d1fd25e15  payload.json
+591d15b05267e64aaa26355cdd723e5bd6e8f0ff42459b5c312d04438b77d192  reliability.json
+8354b57b38acc528a10026fdbe11f3200b08b8a92a409c2f8e9d96ccc737309c  streams.json
+b74fa8c53867fbe255a2dfc6277c92f0b0d7cef55719529efa25d16d754ce658  timing.json

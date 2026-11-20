@@ -1,0 +1,130 @@
+{
+  "spec": "llp/4.0.0",
+  "schema_version": "2.0.0",
+  "category": "profile_r1_reliability",
+  "description": "Profile R1 (optional): command/ACK frame layouts on channels 1 and 2.",
+  "generated_by": "tools/build_vectors.py",
+  "cases": [
+    {
+      "id": "rel-enc-command-seq0",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 1,
+      "payload": "0047312058300a",
+      "frame": "aa5507010047312058300a7647",
+      "note": "R1 command frame: [SEQ][DATA] on channel 1"
+    },
+    {
+      "id": "rel-enc-command-seq255",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 1,
+      "payload": "ff47312058300a",
+      "frame": "aa550701ff47312058300a07e2",
+      "note": "SEQ wraps at 256; 255 is a valid value"
+    },
+    {
+      "id": "rel-enc-command-seq-stuffed",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 1,
+      "payload": "aa47312058300a",
+      "frame": "aa550701aa0047312058300a3771",
+      "note": "SEQ = 0xAA is payload, so the seq byte itself is stuffed"
+    },
+    {
+      "id": "rel-enc-ack-seq7",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 2,
+      "payload": "07",
+      "frame": "aa550102070d95",
+      "note": "R1 ACK frame: exactly one payload byte [SEQ] on channel 2"
+    },
+    {
+      "id": "rel-enc-ack-max",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 2,
+      "payload": "ff",
+      "frame": "aa550102ff1afb"
+    },
+    {
+      "id": "rel-enc-hello-session",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 3,
+      "payload": "2a",
+      "frame": "aa5501032af353",
+      "note": "R1 session marker on channel 3: the receiver resets its dedup state"
+    },
+    {
+      "id": "rel-dec-command",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "0047312058300a"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5507010047312058300a7647"
+    },
+    {
+      "id": "rel-dec-ack",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 2,
+            "payload": "07"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550102070d95"
+    },
+    {
+      "id": "rel-dec-command-then-ack",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "0047312058300a"
+          },
+          {
+            "channel": 2,
+            "payload": "07"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5507010047312058300a7647aa550102070d95",
+      "note": "both profile channels interleaved in one stream; routing is per frame"
+    }
+  ]
+}

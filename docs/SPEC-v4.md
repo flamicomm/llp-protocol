@@ -30,7 +30,9 @@ in [`DECISIONS.md`](DECISIONS.md).
 ## Conformance
 
 This library conforms to the specification in llp-spec. The C suite does not
-parse JSON: `scripts/gen_vectors_v4.py --emit-c` generates
-`test/v4_vectors_generated.h` from the vectors, and CI fails if the header is
-stale. The same mechanism can consume llp-spec's corpus directly; see
-[`CONFORMANCE.md`](CONFORMANCE.md) for the current state.
+parse JSON: `llp-spec/tools/build_vectors.py --emit-c` generates
+`test/v4_vectors_generated.h` from the vendored corpus, the fixture is pinned by
+`spec/vectors/v4/FIXTURE.sha256`, and `scripts/check_corpus.py` fails if the
+corpus, the pin or the regeneration drifts. See [`CONFORMANCE.md`](CONFORMANCE.md)
+for the pins, the derived counts and the Profile R1 gap (`--emit-c` does not emit
+the nine `rel-*` cases yet; L-I1b in llp-spec).

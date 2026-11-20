@@ -55,7 +55,7 @@ int main(void)
 {
     UNITY_BEGIN();
 
-    /* Conformance vectors (spec/vectors/v4/, generated into test/) */
+    /* Conformance vectors (llp-spec canonical corpus, emitted into test/) */
     RUN_TEST(test_v4_encode_vectors);
     RUN_TEST(test_v4_decode_vectors);
 

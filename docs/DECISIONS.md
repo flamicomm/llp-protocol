@@ -270,6 +270,13 @@ header does not have to be re-vendored into consumers.
   generator is deleted.
 - Nothing about the bytes changes. This ADR reallocates documentation
   ownership only; the wire decisions are ADR-001…ADR-010.
+- **Landed.** The convergence above is done: `spec/vectors/v4/` is the vendored
+  corpus with its `MANIFEST.sha256`, `test/v4_vectors_generated.h` is emitted
+  from it by `llp-spec/tools/build_vectors.py --emit-c` and pinned by
+  `FIXTURE.sha256`, `scripts/gen_vectors_v4.py` is gone, and
+  `scripts/check_corpus.py` fails on drift. The nine Profile R1 wire cases are
+  still not emitted by `--emit-c` (L-I1b in `llp-spec`); see
+  [`CONFORMANCE.md`](CONFORMANCE.md).
 
 **Rejected.** Keeping two normative copies and relying on review to keep them in
 sync: the v3 corpus already drifted (the README claimed 199 vectors while its own

@@ -1,28 +1,15 @@
 {
   "spec": "llp/4.0.0",
-  "description": "Decoder conformance: byte streams -> accepted frames and errors.",
-  "generated_by": "scripts/gen_vectors_v4.py",
+  "schema_version": "2.0.0",
+  "category": "transport_decode",
+  "description": "Decoder conformance: byte streams produce the exact frames and no errors.",
+  "generated_by": "tools/build_vectors.py",
   "cases": [
     {
-      "id": "dec-single",
+      "id": "dec-empty",
       "kind": "decode",
-      "capacity": 255,
-      "timeout_ms": 2000,
-      "expect": {
-        "frames": [
-          {
-            "channel": 0,
-            "payload": "6f6b0a"
-          }
-        ],
-        "errors": [],
-        "timeouts": 0
-      },
-      "frame": "aa5503006f6b0a08db"
-    },
-    {
-      "id": "dec-empty-payload",
-      "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -35,11 +22,654 @@
         "errors": [],
         "timeouts": 0
       },
-      "frame": "aa55000023b3"
+      "frame": "aa55000023b3",
+      "note": "empty payload"
+    },
+    {
+      "id": "dec-single-42",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "42"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100420eeb",
+      "note": "one byte 0x42"
+    },
+    {
+      "id": "dec-hello",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "48656c6c6f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55050048656c6c6f0fde",
+      "note": "5-byte ASCII 'Hello'"
+    },
+    {
+      "id": "dec-null-byte",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "00"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100008883",
+      "note": "payload is a single 0x00"
+    },
+    {
+      "id": "dec-ff-byte",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "ff"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100ff789d",
+      "note": "payload is a single 0xFF"
+    },
+    {
+      "id": "dec-aa-byte",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aa"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100aa002897",
+      "note": "single 0xAA — the payload byte must be stuffed"
+    },
+    {
+      "id": "dec-aa55",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aa55"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550200aa0055d24a",
+      "note": "0xAA 0x55 inside the payload must not look like a magic"
+    },
+    {
+      "id": "dec-triple-aa",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aaaaaa"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550300aa00aa00aa008086",
+      "note": "three consecutive 0xAA"
+    },
+    {
+      "id": "dec-mixed-aa",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "01aa02aa03"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55050001aa0002aa0003e391",
+      "note": "scattered 0xAA between normal bytes"
+    },
+    {
+      "id": "dec-zeros-16",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "00000000000000000000000000000000"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55100000000000000000000000000000000000ec09",
+      "note": "16 zero bytes"
+    },
+    {
+      "id": "dec-ones-16",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "01010101010101010101010101010101"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55100001010101010101010101010101010101bb1c",
+      "note": "16 bytes of 0x01"
+    },
+    {
+      "id": "dec-incremental-16",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "000102030405060708090a0b0c0d0e0f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa551000000102030405060708090a0b0c0d0e0fd158",
+      "note": "16 sequential bytes 00..0f"
+    },
+    {
+      "id": "dec-all-ff-16",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "ffffffffffffffffffffffffffffffff"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa551000ffffffffffffffffffffffffffffffffad09",
+      "note": "16 bytes of 0xFF"
+    },
+    {
+      "id": "dec-aa-prefix",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aa42"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550200aa00420428",
+      "note": "0xAA as the first payload byte"
+    },
+    {
+      "id": "dec-aa-suffix",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "42aa"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55020042aa0039cd",
+      "note": "0xAA as the last payload byte, right before the CRC"
+    },
+    {
+      "id": "dec-aa-boundary",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aaaa00aa"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550400aa00aa0000aa001a5f",
+      "note": "0xAA runs around an 0x00 byte"
+    },
+    {
+      "id": "dec-aa00-alternating",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aa00aa00aa"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550500aa0000aa0000aa00ee17",
+      "note": "alternating 0xAA / 0x00"
+    },
+    {
+      "id": "dec-seq-32",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa552000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2dc1",
+      "note": "32 sequential bytes 00..1f"
+    },
+    {
+      "id": "dec-byte-55",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "55"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55010055d889",
+      "note": "single 0x55 — the second magic byte as data"
+    },
+    {
+      "id": "dec-byte-7f",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "7f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5501007ff00c",
+      "note": "single 0x7F"
+    },
+    {
+      "id": "dec-byte-80",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "80"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100800012",
+      "note": "single 0x80"
+    },
+    {
+      "id": "dec-byte-fe",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "fe"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100fe598d",
+      "note": "single 0xFE"
+    },
+    {
+      "id": "dec-ascii-test",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "54657374"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55040054657374721f",
+      "note": "4-byte ASCII 'Test'"
+    },
+    {
+      "id": "dec-ascii-fox",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "54686520717569636b2062726f776e20666f78"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55130054686520717569636b2062726f776e20666f78a808",
+      "note": "20-byte ASCII sentence"
+    },
+    {
+      "id": "dec-eight-bytes",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "0001020304050607"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5508000001020304050607a4a9",
+      "note": "8 sequential bytes"
+    },
+    {
+      "id": "dec-fifteen-null",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "000000000000000000000000000000"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550f000000000000000000000000000000007b81",
+      "note": "15 zero bytes"
+    },
+    {
+      "id": "dec-thirty-null",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa551e000000000000000000000000000000000000000000000000000000000000002271",
+      "note": "30 zero bytes"
+    },
+    {
+      "id": "dec-seq-64",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa554000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3fa8de",
+      "note": "64 sequential bytes 00..3f"
+    },
+    {
+      "id": "dec-repeated-55",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "5555555555555555"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5508005555555555555555571d",
+      "note": "8 bytes of 0x55"
+    },
+    {
+      "id": "dec-aa-55-pairs",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aa55aa55aa55"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550600aa0055aa0055aa0055a8cd",
+      "note": "alternating 0xAA 0x55 pairs"
+    },
+    {
+      "id": "dec-mixed-55-aa",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "55aa55aa55aa55aa"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55080055aa0055aa0055aa0055aa001a33",
+      "note": "alternating 0x55 0xAA pattern"
+    },
+    {
+      "id": "dec-double-zero",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "0000"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550200000037b2",
+      "note": "two consecutive 0x00"
+    },
+    {
+      "id": "dec-ten-a",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "41414141414141414141"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550a004141414141414141414195d2",
+      "note": "10 bytes of ASCII 'A'"
     },
     {
       "id": "dec-two-frames-back-to-back",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -61,6 +691,8 @@
     {
       "id": "dec-garbage-before-magic",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -74,29 +706,53 @@
         "timeouts": 0
       },
       "frame": "00ffaa13aaaaaa5503006f6b0a08db",
-      "note": "garbage in WAIT_MAGIC1/2 is ignored, not an error"
+      "note": "garbage while waiting for the magic is ignored, never reported"
     },
     {
-      "id": "dec-payload-contains-magic",
+      "id": "dec-aa-aa-55-is-a-frame-start",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
         "frames": [
           {
             "channel": 0,
-            "payload": "aa55"
+            "payload": "6f6b0a"
           }
         ],
         "errors": [],
         "timeouts": 0
       },
-      "frame": "aa550200aa0055d24a",
-      "note": "escaped magic inside the payload must not trigger resync"
+      "frame": "aaaa5503006f6b0a08db",
+      "note": "the second 0xAA is not treated as an escape"
+    },
+    {
+      "id": "dec-aa-00-in-wait-magic2",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "6f6b0a"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa00aa5503006f6b0a08db",
+      "note": "0xAA 0x00 before the magic reports nothing"
     },
     {
       "id": "dec-resync-discards-partial-frame",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -117,6 +773,8 @@
     {
       "id": "dec-bad-escape-recovers",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -132,11 +790,13 @@
         "timeouts": 0
       },
       "frame": "aa550300aa42aa5503006f6b0a08db",
-      "note": "0xAA followed by anything other than 0x00/0x55 is a sync error"
+      "note": "0xAA followed by anything but 0x00/0x55 is a sync error"
     },
     {
-      "id": "dec-truncated-frame-no-followup",
+      "id": "dec-truncated-tail-delivers-nothing",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -145,11 +805,13 @@
         "timeouts": 0
       },
       "frame": "aa5503006f6b",
-      "note": "incomplete tail with no following data: nothing is delivered"
+      "note": "incomplete tail with no following byte: nothing is delivered"
     },
     {
       "id": "dec-two-frames-max-payload",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -167,11 +829,52 @@
         "timeouts": 0
       },
       "frame": "aa55ff03aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa0024fcaa55ff04000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000af76",
-      "note": "max payload in both directions of stuffing"
+      "note": "maximum payload in both stuffing directions"
     },
     {
-      "id": "dec-channel-aa",
+      "id": "dec-len-exactly-at-capacity",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 64,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5540007a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a1451",
+      "note": "LEN == capacity is accepted; only LEN > capacity is an error"
+    },
+    {
+      "id": "dec-channel-255",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 255,
+            "payload": "78"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5501ff78e87f"
+    },
+    {
+      "id": "dec-channel-0xaa",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -184,7 +887,28 @@
         "errors": [],
         "timeouts": 0
       },
-      "frame": "aa5502aa00686966b7"
+      "frame": "aa5502aa00686966b7",
+      "note": "the CHANNEL field itself is stuffed"
+    },
+    {
+      "id": "dec-payload-magic-escaped",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "aa55"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550200aa0055d24a",
+      "note": "escaped magic inside the payload must not trigger a resync"
     }
   ]
 }

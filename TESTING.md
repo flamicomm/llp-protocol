@@ -1,124 +1,146 @@
-# Testing Guide — LLP Protocol 3.1.0
+# Testing Guide — LLP wire 4.0.0
+
+Everything runs on the host (PlatformIO `native` environment) plus two support
+checks: the AVR example is cross-compiled with `avr-gcc` and the memory budget is
+measured with the same toolchain. No hardware is needed.
 
 ## Prerequisites
 
 ```bash
 pip install platformio
+# optional, for the AVR example and the memory budget:
+#   avr-gcc/avr-size come from the PlatformIO AVR toolchain (installed on first
+#   `pio run -e arduino_uno`) or from your distro (gcc-avr / avr-libc).
+# optional, for coverage: lcov
 ```
 
-## Run All Tests
+## Gate
+
+One command runs everything CI runs:
 
 ```bash
-platformio test -e test -v
+pio test -e test && \
+python3 scripts/check_corpus.py && \
+sh scripts/check_robustness.sh && \
+sh scripts/check_examples.sh && \
+python3 scripts/measure_v4.py --budget
 ```
 
-Expected output:
-```
-90 Tests 0 Failures 0 Ignored OK
-```
-
-## Test Suites
-
-### Original Tests (35 tests)
-
-| Test File | Count | Focus |
-|-----------|-------|-------|
-| `test_parser_init.c` | 5 | Parser startup, state reset, stats |
-| `test_frame_builder.c` | 11 | Frame construction, stuffing, roundtrip |
-| `test_parser_process.c` | 11 | Byte parsing, errors, recovery, timeouts |
-| `test_crc.c` | 8 | CRC16-CCITT, error detection, determinism |
-
-### Spec Conformance Tests (55 test functions, ~199 vectors)
-
-Based on the [LLP Specification v3.1.0](https://github.com/flamicomm/llp-spec) test vectors.
-
-| Test File | Category | Count | Vectors |
-|-----------|----------|-------|---------|
-| `test_spec_vectors.c` | Transport Valid Encode | 1 | 31 |
-| `test_spec_vectors.c` | Transport Valid Decode | 1 | 31 |
-| `test_spec_vectors.c` | Transport Valid Stream | 3 | 3 |
-| `test_spec_vectors.c` | Transport CRC | 1 | 28 |
-| `test_spec_vectors.c` | Transport Stuffing | 2 | 8 |
-| `test_spec_vectors.c` | Transport Resync | 8 | 8 |
-| `test_spec_vectors.c` | Transport Truncation | 8 | 7+2 |
-| `test_spec_vectors.c` | Transport Timeout | 3 | 3 |
-| `test_spec_vectors.c` | Layers Passthrough | 4 | 15+15+2 |
-| `test_spec_vectors.c` | Layers Transform | 2 | 6+7 |
-| `test_spec_vectors.c` | Layers Malformed | 4 | 4 |
-| `test_spec_vectors.c` | Layers Traversal | 5 | 5 |
-| `test_spec_vectors.c` | Parser Incremental | 3 | 3 |
-| `test_spec_vectors.c` | Parser Fragmented | 3 | 3 |
-| `test_spec_vectors.c` | Parser Recovery | 4 | 4 |
-
-### Cross-Language Test Generator
-
-The `tools/cross_test_generate.c` standalone program generates binary frames
-from known test vectors and verifies interoperability with the Java implementation.
-
-Compile and run:
-```bash
-gcc -std=c99 -I include -o /tmp/llp_cross_gen tools/cross_test_generate.c
-/tmp/llp_cross_gen [output_dir]
-```
-
-## Hardware Tests (30 test cases)
-
-Run the automated test suite against an Arduino Nano connected via USB:
+## Unit and conformance suite
 
 ```bash
-# Build, upload, and test with defaults
-python3 test/hardware_test/test_hardware.py
-
-# Specify a different port
-python3 test/hardware_test/test_hardware.py --port /dev/ttyUSB1
-
-# Skip build/upload if firmware is already loaded
-python3 test/hardware_test/test_hardware.py --no-upload
+pio test -e test          # 42 test cases
+pio test -e test -v       # with the Unity output of every case
+pio test -e test --filter test_v4_rel   # one suite
 ```
 
-The hardware test suite validates the library on real hardware:
-- **Valid frame parsing**: empty, single bytes, multi-byte, stuffed bytes
-- **Error detection**: CRC mismatch, invalid escapes, unstuffed magic bytes
-- **Noise recovery**: frames arriving after garbage bytes
-- **Sequential frames**: multiple frames without reset
-- **Zero-copy API**: `llp_get_final_payload_ptr()` correctness
-- **Long payloads**: up to 32 bytes of application data
+Current result: **42 test cases, 42 succeeded**. The count is derived, not
+remembered:
 
-Expected output:
+```bash
+grep -c 'RUN_TEST(' test/test_main.c                              # 42 registered
+grep -c '^void test_' test/test_v4.c test/test_v4_ring.c test/test_v4_rel.c   # 13, 5, 24
 ```
-Results: 30/30 passed — ALL TESTS PASSED
+
+| Suite | Tests | Focus |
+|---|---:|---|
+| `test/test_v4.c` | 13 | Core behaviour + both corpus tables (`llp4_vec_encode[]`, `llp4_vec_decode[]`) |
+| `test/test_v4_ring.c` | 5 | SPSC ring helper |
+| `test/test_v4_rel.c` | 24 | Profile R1 state machines + conformance traces T1–T9 |
+
+`test_v4.c` walks the generated fixture row by row: each encode row checks the
+streaming writer and the buffer wrapper against the expected frame, each decode
+row feeds its per-byte steps (with `dt_ms`) and asserts the delivered frames, the
+error codes in order, and — with `LLP4_ENABLE_STATS=1`, which `platformio.ini`
+sets — the timeout and error counters. Two pins at the top of those tests
+(`60` encode, `101` decode) make a truncated fixture fail loudly instead of
+passing vacuously.
+
+What the fixture covers, why 161 of 170 cases, and the nine Profile R1 cases that
+`--emit-c` does not emit yet: [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md).
+
+## Corpus and fixture pins
+
+```bash
+python3 scripts/check_corpus.py      # manifest + fixture hash (+ regeneration if ../llp-spec exists)
+sh scripts/sync_corpus.sh            # re-vendor from ../llp-spec and rebuild the fixture
 ```
+
+`check_corpus.py` is offline-safe: without a `llp-spec` checkout it verifies the
+vendored manifest and `FIXTURE.sha256`, and prints a note instead of failing. With
+`../llp-spec` present it also proves that `build_vectors.py --emit-c` reproduces
+the committed header byte for byte.
+
+## Robustness
+
+```bash
+sh scripts/check_robustness.sh
+```
+
+Two gates, both built with `-fsanitize=address,undefined`:
+
+- **Property fuzzer** (`tools/fuzz_v4.c`): four input distributions, five
+  invariants, 100 000 inputs per seed.
+- **Noise channel** (`tools/noise_report.c`): bit flips, drops, inserts and bursts
+  over 400 frames per scenario, plus a false-accept run over pure random bytes.
+  The table in `docs/ROBUSTNESS.md` must match the measurement, so a regression in
+  either direction fails the script.
+
+## Examples
+
+```bash
+sh scripts/check_examples.sh
+```
+
+Builds `examples/v4/avr_baremetal` with `avr-gcc` (`avr-size` prints the footprint)
+and compiles/runs `examples/v4/host_posix --selftest` (roundtrips + noise).
+
+## Memory footprint
+
+```bash
+python3 scripts/measure_v4.py            # print the table
+python3 scripts/measure_v4.py --budget   # CI gate: AVR parser/tx/rel_*/flash
+python3 scripts/measure_v4.py --check-readme --toolchains avr,host
+```
+
+Budgets (ATmega328P, `micro` profile, stats off): parser ≤ 20 B, tx ≤ 8 B,
+`rel_tx` ≤ 76 B, `rel_rx` ≤ 6 B, core flash ≤ 800 B. `src/llp_v4_check.c` carries
+the compile-time twin of the RAM budgets, so the AVR cross-build fails as soon as
+the AVR struct grows past one of them.
+
+## Cross-compilation smoke
+
+```bash
+pio run -e arduino_uno     # compiles src/llp_v4_check.c for every environment
+pio run -e esp8266
+```
+
+`src/llp_v4_check.c` is a compile smoke test: it instantiates the state and calls
+the API, it is not an application.
 
 ## Coverage
 
-The CI pipeline generates code coverage reports using GCOV/LCOV and uploads them to Codecov.
-Coverage data is collected automatically on every push and pull request.
+`platformio.ini` passes `-coverage` and loads `scripts/platformio_coverage.py`, so
+`pio test -e test` leaves `.gcda` files in `.pio/build/test`.
 
-### Local Coverage (optional)
-
-Requires `lcov`:
 ```bash
-# Ubuntu/Debian
-sudo apt-get install lcov
-
-# Run tests (coverage flags are already in platformio.ini)
-platformio test -e test
-
-# Generate HTML report
-mkdir -p coverage
-lcov --capture --directory .pio/build/test --output-file coverage/lcov.info
-lcov --remove coverage/lcov.info '/usr/*' '*/libdeps/*' '*/Unity/*' --output-file coverage/lcov.info
+lcov --capture --directory .pio/build/test --output-file coverage/lcov.info \
+     --ignore-errors inconsistent
+lcov --remove coverage/lcov.info '*/libdeps/*' '*/Unity/*' \
+     --output-file coverage/lcov.info --ignore-errors inconsistent,unused
 genhtml coverage/lcov.info --output-directory coverage/html
 ```
 
-## Known Issues
-
-See [BUGS.md](BUGS.md) for known issues discovered through spec conformance testing.
+`coverage/` is gitignored; CI uploads `coverage/lcov.info` to Codecov.
 
 ## Debugging
 
 ```bash
-platformio test -e test -vvv              # Extra verbose with compiler output
-platformio test -e test --filter test_crc  # Run specific test file
-pio test --verbose -e test                 # Alternative syntax
+pio test -e test -vvv               # compiler and link lines
+pio test -e test --filter test_v4_rel   # one suite by source file name
 ```
+
+A failing vector names its `id` in the assertion message (`TEST_ASSERT_*_MESSAGE`
+uses `c->id`), so the message points at the JSON case in `spec/vectors/v4/`.
+Do not edit the fixture or the JSON by hand: see `docs/CONFORMANCE.md`,
+"When a case fails".

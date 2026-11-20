@@ -1,114 +1,397 @@
 {
   "spec": "llp/4.0.0",
-  "description": "Encoder conformance: (channel, payload) -> exact frame bytes.",
-  "generated_by": "scripts/gen_vectors_v4.py",
+  "schema_version": "2.0.0",
+  "category": "transport_encode",
+  "description": "Encoder conformance: (channel, payload) produces exact frame bytes.",
+  "generated_by": "tools/build_vectors.py",
   "cases": [
     {
-      "id": "enc-empty-channel0",
+      "id": "enc-empty",
       "kind": "encode",
+      "result": "valid",
+      "flags": [],
       "channel": 0,
       "payload": "",
-      "frame": "aa55000023b3"
+      "frame": "aa55000023b3",
+      "note": "empty payload"
+    },
+    {
+      "id": "enc-single-42",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "42",
+      "frame": "aa550100420eeb",
+      "note": "one byte 0x42"
+    },
+    {
+      "id": "enc-hello",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "48656c6c6f",
+      "frame": "aa55050048656c6c6f0fde",
+      "note": "5-byte ASCII 'Hello'"
+    },
+    {
+      "id": "enc-null-byte",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "00",
+      "frame": "aa550100008883",
+      "note": "payload is a single 0x00"
+    },
+    {
+      "id": "enc-ff-byte",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "ff",
+      "frame": "aa550100ff789d",
+      "note": "payload is a single 0xFF"
+    },
+    {
+      "id": "enc-aa-byte",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aa",
+      "frame": "aa550100aa002897",
+      "note": "single 0xAA — the payload byte must be stuffed"
+    },
+    {
+      "id": "enc-aa55",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aa55",
+      "frame": "aa550200aa0055d24a",
+      "note": "0xAA 0x55 inside the payload must not look like a magic"
+    },
+    {
+      "id": "enc-triple-aa",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aaaaaa",
+      "frame": "aa550300aa00aa00aa008086",
+      "note": "three consecutive 0xAA"
+    },
+    {
+      "id": "enc-mixed-aa",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "01aa02aa03",
+      "frame": "aa55050001aa0002aa0003e391",
+      "note": "scattered 0xAA between normal bytes"
+    },
+    {
+      "id": "enc-zeros-16",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "00000000000000000000000000000000",
+      "frame": "aa55100000000000000000000000000000000000ec09",
+      "note": "16 zero bytes"
+    },
+    {
+      "id": "enc-ones-16",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "01010101010101010101010101010101",
+      "frame": "aa55100001010101010101010101010101010101bb1c",
+      "note": "16 bytes of 0x01"
+    },
+    {
+      "id": "enc-incremental-16",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "000102030405060708090a0b0c0d0e0f",
+      "frame": "aa551000000102030405060708090a0b0c0d0e0fd158",
+      "note": "16 sequential bytes 00..0f"
+    },
+    {
+      "id": "enc-all-ff-16",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "ffffffffffffffffffffffffffffffff",
+      "frame": "aa551000ffffffffffffffffffffffffffffffffad09",
+      "note": "16 bytes of 0xFF"
+    },
+    {
+      "id": "enc-aa-prefix",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aa42",
+      "frame": "aa550200aa00420428",
+      "note": "0xAA as the first payload byte"
+    },
+    {
+      "id": "enc-aa-suffix",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "42aa",
+      "frame": "aa55020042aa0039cd",
+      "note": "0xAA as the last payload byte, right before the CRC"
+    },
+    {
+      "id": "enc-aa-boundary",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aaaa00aa",
+      "frame": "aa550400aa00aa0000aa001a5f",
+      "note": "0xAA runs around an 0x00 byte"
+    },
+    {
+      "id": "enc-aa00-alternating",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aa00aa00aa",
+      "frame": "aa550500aa0000aa0000aa00ee17",
+      "note": "alternating 0xAA / 0x00"
+    },
+    {
+      "id": "enc-seq-32",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "frame": "aa552000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2dc1",
+      "note": "32 sequential bytes 00..1f"
+    },
+    {
+      "id": "enc-byte-55",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "55",
+      "frame": "aa55010055d889",
+      "note": "single 0x55 — the second magic byte as data"
+    },
+    {
+      "id": "enc-byte-7f",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "7f",
+      "frame": "aa5501007ff00c",
+      "note": "single 0x7F"
+    },
+    {
+      "id": "enc-byte-80",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "80",
+      "frame": "aa550100800012",
+      "note": "single 0x80"
+    },
+    {
+      "id": "enc-byte-fe",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "fe",
+      "frame": "aa550100fe598d",
+      "note": "single 0xFE"
+    },
+    {
+      "id": "enc-ascii-test",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "54657374",
+      "frame": "aa55040054657374721f",
+      "note": "4-byte ASCII 'Test'"
+    },
+    {
+      "id": "enc-ascii-fox",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "54686520717569636b2062726f776e20666f78",
+      "frame": "aa55130054686520717569636b2062726f776e20666f78a808",
+      "note": "20-byte ASCII sentence"
+    },
+    {
+      "id": "enc-eight-bytes",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "0001020304050607",
+      "frame": "aa5508000001020304050607a4a9",
+      "note": "8 sequential bytes"
+    },
+    {
+      "id": "enc-fifteen-null",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "000000000000000000000000000000",
+      "frame": "aa550f000000000000000000000000000000007b81",
+      "note": "15 zero bytes"
+    },
+    {
+      "id": "enc-thirty-null",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "000000000000000000000000000000000000000000000000000000000000",
+      "frame": "aa551e000000000000000000000000000000000000000000000000000000000000002271",
+      "note": "30 zero bytes"
+    },
+    {
+      "id": "enc-seq-64",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "frame": "aa554000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3fa8de",
+      "note": "64 sequential bytes 00..3f"
+    },
+    {
+      "id": "enc-repeated-55",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "5555555555555555",
+      "frame": "aa5508005555555555555555571d",
+      "note": "8 bytes of 0x55"
+    },
+    {
+      "id": "enc-aa-55-pairs",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aa55aa55aa55",
+      "frame": "aa550600aa0055aa0055aa0055a8cd",
+      "note": "alternating 0xAA 0x55 pairs"
+    },
+    {
+      "id": "enc-mixed-55-aa",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "55aa55aa55aa55aa",
+      "frame": "aa55080055aa0055aa0055aa0055aa001a33",
+      "note": "alternating 0x55 0xAA pattern"
+    },
+    {
+      "id": "enc-double-zero",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "0000",
+      "frame": "aa550200000037b2",
+      "note": "two consecutive 0x00"
+    },
+    {
+      "id": "enc-ten-a",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "41414141414141414141",
+      "frame": "aa550a004141414141414141414195d2",
+      "note": "10 bytes of ASCII 'A'"
     },
     {
       "id": "enc-text-ok",
       "kind": "encode",
+      "result": "valid",
+      "flags": [],
       "channel": 0,
       "payload": "6f6b0a",
       "frame": "aa5503006f6b0a08db"
     },
     {
-      "id": "enc-channel-1-command",
+      "id": "enc-command-channel-1",
       "kind": "encode",
+      "result": "valid",
+      "flags": [],
       "channel": 1,
       "payload": "4731205831300a",
       "frame": "aa5507014731205831300ae427"
     },
     {
-      "id": "enc-rel-command-seq0",
-      "kind": "encode",
-      "channel": 1,
-      "payload": "0047312058300a",
-      "frame": "aa5507010047312058300a7647",
-      "note": "Profile R1: command frame payload is [SEQ][DATA] on channel 1"
-    },
-    {
-      "id": "enc-rel-command-seq-stuffed",
-      "kind": "encode",
-      "channel": 1,
-      "payload": "aa47312058300a",
-      "frame": "aa550701aa0047312058300a3771",
-      "note": "Profile R1: SEQ 0xAA is payload, so the sequence byte is stuffed"
-    },
-    {
-      "id": "enc-rel-ack-seq7",
-      "kind": "encode",
-      "channel": 2,
-      "payload": "07",
-      "frame": "aa550102070d95",
-      "note": "Profile R1: ACK frame payload is exactly [SEQ] on channel 2"
-    },
-    {
-      "id": "enc-rel-hello-session",
-      "kind": "encode",
-      "channel": 3,
-      "payload": "2a",
-      "frame": "aa5501032af353",
-      "note": "Profile R1: session marker on channel 3 (resets dedup state)"
-    },
-    {
-      "id": "enc-channel-255",
-      "kind": "encode",
-      "channel": 255,
-      "payload": "70696e67",
-      "frame": "aa5504ff70696e677e9a"
-    },
-    {
-      "id": "enc-payload-magic-and-escape",
-      "kind": "encode",
-      "channel": 0,
-      "payload": "aa5500aa55",
-      "frame": "aa550500aa005500aa00558848",
-      "note": "payload contains a full magic pattern; it must be escaped"
-    },
-    {
-      "id": "enc-payload-all-aa",
-      "kind": "encode",
-      "channel": 0,
-      "payload": "aaaaaaaaaaaaaaaa",
-      "frame": "aa550800aa00aa00aa00aa00aa00aa00aa00aa00b6bb",
-      "note": "worst-case stuffing: every payload byte doubles"
-    },
-    {
       "id": "enc-len-field-stuffed",
       "kind": "encode",
+      "result": "valid",
+      "flags": [],
       "channel": 0,
       "payload": "7878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878",
       "frame": "aa55aa00007878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878def3",
       "note": "LEN = 170 = 0xAA, so the LEN field itself must be stuffed"
     },
     {
-      "id": "enc-channel-field-stuffed",
-      "kind": "encode",
-      "channel": 170,
-      "payload": "6869",
-      "frame": "aa5502aa00686966b7",
-      "note": "CHANNEL = 0xAA, so the CHANNEL field must be stuffed"
-    },
-    {
       "id": "enc-crc-field-stuffed",
       "kind": "encode",
+      "result": "valid",
+      "flags": [],
       "channel": 0,
       "payload": "64",
       "frame": "aa55010064aa00af",
-      "note": "CRC contains a 0xAA byte, so a CRC byte must be stuffed"
+      "note": "a CRC byte is 0xAA, so the CRC field must be stuffed"
     },
     {
-      "id": "enc-max-payload",
+      "id": "enc-max-payload-255",
       "kind": "encode",
+      "result": "valid",
+      "flags": [],
       "channel": 7,
       "payload": "00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00",
-      "frame": "aa55ff0700ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00fb50"
+      "frame": "aa55ff0700ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00fb50",
+      "note": "maximum payload: LEN = 255, channel 7"
+    },
+    {
+      "id": "enc-max-payload-all-aa",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "frame": "aa55ff00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa00f24f",
+      "note": "worst case: 255 bytes of 0xAA, every payload byte doubles on the wire"
     }
   ]
 }

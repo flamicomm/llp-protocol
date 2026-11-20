@@ -11,7 +11,8 @@ máquinas de estado: `README.md` y `docs/`.
 
 ```bash
 pio test -e test                              # suite Unity en el host (env nativo)
-python3 scripts/gen_vectors_v4.py --check     # vectores vs referencia
+sh scripts/sync_corpus.sh                     # re-vendoriza el corpus de ../llp-spec y regenera el fixture
+python3 scripts/check_corpus.py               # manifest + pin del fixture + regeneración byte a byte
 sh scripts/check_robustness.sh                # fuzzer + canal con ruido
 sh scripts/check_examples.sh                  # compila y corre los ejemplos
 python3 scripts/measure_v4.py --budget        # presupuesto de RAM/flash
@@ -34,11 +35,17 @@ imprime `scripts/measure_v4.py`; no los cites de memoria.
 - **Errores son eventos**, no estados fatales: tras `LLP4_ERR_*` el parser queda
   listo para la próxima trama.
 - **Presupuesto de memoria**: `measure_v4.py --budget` es el gate de CI y
-  `src/llp_v4_check.c` lleva el static assert de tamaño del parser. Medí antes de
-  agregar código; no relajes ninguno de los dos sin justificarlo.
+  `src/llp_v4_check.c` lleva los static assert de tamaño del parser y del estado
+  R1 (`rel_tx` 76 B en AVR, `rel_rx` 6 B). Medí antes de agregar código; no
+  relajes ninguno de los dos sin justificarlo.
 - **`test/v4_vectors_generated.h` es generado** por
-  `scripts/gen_vectors_v4.py`; no se edita a mano. El corpus vive en
-  `spec/vectors/v4/` y se origina en `llp-spec`.
+  `llp-spec/tools/build_vectors.py --emit-c`; no se edita a mano y
+  `spec/vectors/v4/FIXTURE.sha256` lo pinea. El corpus se copia del normativo
+  `llp-spec/vectors/` con `scripts/sync_corpus.sh` (JSON + `MANIFEST.sha256`);
+  nunca se edita `spec/vectors/v4/*.json` acá.
+- **`--emit-c` no emite los 9 casos wire de R1** (`rel-*`): no se agregan a mano.
+  R1 se cubre con `test/test_v4_rel.c` y la emisión queda como L-I1b en
+  `llp-spec` (`docs/CONFORMANCE.md`).
 - **El wire cambia primero en `llp-spec`**: acá solo se implementa. Un cambio de
   comportamiento va en el C **y** en la referencia Python (`scripts/llp_v4.py`)
   en el mismo cambio.
@@ -55,7 +62,8 @@ imprime `scripts/measure_v4.py`; no los cites de memoria.
 | `docs/SPEC-v4.md` | puntero a la norma del wire en `llp-spec` |
 | `docs/INTEGRATION.md` | cómo conectar el parser/encoder a un enlace |
 | `docs/DECISIONS.md` | ADR log (incluye los cambios de wire) |
-| `docs/CONFORMANCE.md` | schema de vectores y checklist |
+| `docs/CONFORMANCE.md` | corpus vendorizado, pins, conteos derivados y el gap R1 (L-I1b) |
+| `docs/RELIABILITY.md` | perfil R1 en C: máquinas de estado, memoria y trazas |
 | `docs/ROBUSTNESS.md` | comportamiento medido bajo ruido |
 | `docs/WHY-LLP.md` | comparación con COBS/SLIP/HDLC/Modbus |
 | `docs/PROTOCOL.md` | spec histórica v3.1.0 (no se actualiza) |

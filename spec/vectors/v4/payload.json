@@ -1,0 +1,369 @@
+{
+  "spec": "llp/4.0.0",
+  "schema_version": "2.0.0",
+  "category": "transport_payload",
+  "description": "Opaque payload: bytes that look like v3 layer chains are delivered unchanged.",
+  "generated_by": "tools/build_vectors.py",
+  "cases": [
+    {
+      "id": "payload-enc-final-node",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "00",
+      "frame": "aa550100008883",
+      "note": "0x00 used to mean FinalNode; now it is just data"
+    },
+    {
+      "id": "payload-dec-final-node",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "00"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100008883",
+      "note": "0x00 used to mean FinalNode; now it is just data"
+    },
+    {
+      "id": "payload-enc-final-then-a",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "0041",
+      "frame": "aa5502000041d2ea",
+      "note": "0x00 followed by application bytes"
+    },
+    {
+      "id": "payload-dec-final-then-a",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "0041"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5502000041d2ea",
+      "note": "0x00 followed by application bytes"
+    },
+    {
+      "id": "payload-enc-passthrough-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "01031020300048656c6c6f",
+      "frame": "aa550b0001031020300048656c6c6f6191",
+      "note": "bytes shaped like a passthrough layer must be delivered verbatim"
+    },
+    {
+      "id": "payload-dec-passthrough-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "01031020300048656c6c6f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550b0001031020300048656c6c6f6191",
+      "note": "bytes shaped like a passthrough layer must be delivered verbatim"
+    },
+    {
+      "id": "payload-enc-transform-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "8004deadbeef004f4b",
+      "frame": "aa5509008004deadbeef004f4bb396",
+      "note": "bytes shaped like a transform layer must be delivered verbatim"
+    },
+    {
+      "id": "payload-dec-transform-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "8004deadbeef004f4b"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5509008004deadbeef004f4bb396",
+      "note": "bytes shaped like a transform layer must be delivered verbatim"
+    },
+    {
+      "id": "payload-enc-reserved-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "ff01000064617461",
+      "frame": "aa550800ff010000646174615b24",
+      "note": "the 0xFF layer id has no meaning in v4"
+    },
+    {
+      "id": "payload-dec-reserved-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "ff01000064617461"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550800ff010000646174615b24",
+      "note": "the 0xFF layer id has no meaning in v4"
+    },
+    {
+      "id": "payload-enc-max-passthrough-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "7f02f00f0078797a",
+      "frame": "aa5508007f02f00f0078797aca6e",
+      "note": "0x7F was the maximum passthrough id in v3"
+    },
+    {
+      "id": "payload-dec-max-passthrough-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "7f02f00f0078797a"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5508007f02f00f0078797aca6e",
+      "note": "0x7F was the maximum passthrough id in v3"
+    },
+    {
+      "id": "payload-enc-max-transform-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "fe01a500010203",
+      "frame": "aa550700fe01a5000102030750",
+      "note": "0xFE was the maximum transform id in v3"
+    },
+    {
+      "id": "payload-dec-max-transform-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "fe01a500010203"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550700fe01a5000102030750",
+      "note": "0xFE was the maximum transform id in v3"
+    },
+    {
+      "id": "payload-enc-truncated-metadata-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "010a1020300048656c6c6f",
+      "frame": "aa550b00010a1020300048656c6c6f6fb4",
+      "note": "v3 reported LAYER_MALFORMED here; v4 delivers the bytes unchanged"
+    },
+    {
+      "id": "payload-dec-truncated-metadata-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "010a1020300048656c6c6f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550b00010a1020300048656c6c6f6fb4",
+      "note": "v3 reported LAYER_MALFORMED here; v4 delivers the bytes unchanged"
+    },
+    {
+      "id": "payload-enc-extended-metadata-looking",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "01ff0048656c6c6f",
+      "frame": "aa55080001ff0048656c6c6f63a6",
+      "note": "v3 reported LAYER_MALFORMED for a truncated extended metadata length"
+    },
+    {
+      "id": "payload-dec-extended-metadata-looking",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "01ff0048656c6c6f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55080001ff0048656c6c6f63a6",
+      "note": "v3 reported LAYER_MALFORMED for a truncated extended metadata length"
+    },
+    {
+      "id": "payload-enc-lone-ff",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "ff",
+      "frame": "aa550100ff789d",
+      "note": "a single 0xFF byte"
+    },
+    {
+      "id": "payload-dec-lone-ff",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "ff"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa550100ff789d",
+      "note": "a single 0xFF byte"
+    },
+    {
+      "id": "payload-enc-lone-01",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "01",
+      "frame": "aa55010001a993",
+      "note": "a single 0x01 byte"
+    },
+    {
+      "id": "payload-dec-lone-01",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "01"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55010001a993",
+      "note": "a single 0x01 byte"
+    },
+    {
+      "id": "payload-enc-zero-then-magic",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "00aa550055",
+      "frame": "aa55050000aa005500556a28",
+      "note": "magic bytes after a leading 0x00 are still just payload"
+    },
+    {
+      "id": "payload-dec-zero-then-magic",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "00aa550055"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55050000aa005500556a28",
+      "note": "magic bytes after a leading 0x00 are still just payload"
+    }
+  ]
+}

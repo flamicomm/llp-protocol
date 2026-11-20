@@ -1,0 +1,200 @@
+{
+  "spec": "llp/4.0.0",
+  "schema_version": "2.0.0",
+  "category": "transport_channels",
+  "description": "Channel field: routing range, reserved range, and stuffing of the field itself.",
+  "generated_by": "tools/build_vectors.py",
+  "cases": [
+    {
+      "id": "chan-enc-0",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 0,
+      "payload": "70696e67",
+      "frame": "aa55040070696e67d1c0"
+    },
+    {
+      "id": "chan-enc-1",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 1,
+      "payload": "70696e67",
+      "frame": "aa55040170696e67806a"
+    },
+    {
+      "id": "chan-enc-2",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 2,
+      "payload": "70696e67",
+      "frame": "aa55040270696e675284"
+    },
+    {
+      "id": "chan-enc-3",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 3,
+      "payload": "70696e67",
+      "frame": "aa55040370696e67032e"
+    },
+    {
+      "id": "chan-enc-4",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 4,
+      "payload": "70696e67",
+      "frame": "aa55040470696e67d749"
+    },
+    {
+      "id": "chan-enc-239",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 239,
+      "payload": "70696e67",
+      "frame": "aa5504ef70696e67249e"
+    },
+    {
+      "id": "chan-enc-240",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 240,
+      "payload": "70696e67",
+      "frame": "aa5504f070696e6787ff"
+    },
+    {
+      "id": "chan-enc-255",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 255,
+      "payload": "70696e67",
+      "frame": "aa5504ff70696e677e9a"
+    },
+    {
+      "id": "chan-enc-0xaa-stuffed",
+      "kind": "encode",
+      "result": "valid",
+      "flags": [],
+      "channel": 170,
+      "payload": "6869",
+      "frame": "aa5502aa00686966b7",
+      "note": "CHANNEL = 0xAA, so the channel field itself is stuffed"
+    },
+    {
+      "id": "chan-dec-1",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "70696e67"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55040170696e67806a"
+    },
+    {
+      "id": "chan-dec-240-reserved",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 240,
+            "payload": "70696e67"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5504f070696e6787ff",
+      "note": "240..255 is reserved for future LLP layers and must still be delivered"
+    },
+    {
+      "id": "chan-dec-0xaa-stuffed",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 170,
+            "payload": "70696e67"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa5504aa0070696e671bac"
+    },
+    {
+      "id": "chan-same-payload-different-channels",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 2,
+            "payload": "70696e67"
+          },
+          {
+            "channel": 3,
+            "payload": "70696e67"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "frame": "aa55040270696e675284aa55040370696e67032e",
+      "note": "routing is per frame; identical payloads stay distinguishable"
+    },
+    {
+      "id": "chan-stream-split-between-frames",
+      "kind": "stream",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "chunks": [
+        "aa550301636d6413ffaa5503",
+        "0274656c9daa00"
+      ],
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "636d64"
+          },
+          {
+            "channel": 2,
+            "payload": "74656c"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "note": "chunk boundaries do not affect routing or frame order"
+    }
+  ]
+}
