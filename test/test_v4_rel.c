@@ -228,6 +228,55 @@ void test_rel_tx_exhausts_and_backs_off(void)
     TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_EXHAUSTED, llp4_rel_tx_service(&tx, (uint16_t)(now + 1000)));
 }
 
+/* L-M4 anchor: in the `exhausted` state the sender reports exactly one
+ * LLP4_REL_TX_EXHAUSTED per backoff_ms, no matter how densely it is polled.
+ * The 1 Hz retry policy after exhaustion belongs to the caller
+ * (RELIABILITY.md §5.2.5/§7); this pins the machine's half of the contract
+ * without changing behaviour. */
+void test_rel_tx_exhausted_reports_once_per_backoff(void)
+{
+    llp4_rel_tx_t tx;
+    uint16_t events[16];
+    uint8_t event_count = 0;
+    uint16_t t;
+
+    llp4_rel_tx_init(&tx, 50, 1, LLP4_REL_DEFAULT_BACKOFF_MS);
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_tx_start(&tx, 3, (const uint8_t *)"x", 1, 0));
+
+    /* One fast retransmission at t=50, then the first exhaustion event at
+     * t=100: the timeout after the last transmission has elapsed. */
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_IDLE, llp4_rel_tx_service(&tx, 49));
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_SEND, llp4_rel_tx_service(&tx, 50));
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_IDLE, llp4_rel_tx_service(&tx, 99));
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_EXHAUSTED, llp4_rel_tx_service(&tx, 100));
+    events[event_count++] = 100;
+
+    /* Exhaustion never claims delivery and never invents retries. */
+    TEST_ASSERT_EQUAL_UINT8(1, tx.active);
+    TEST_ASSERT_EQUAL_UINT8(tx.max_retries, tx.retries);
+
+    /* Dense polling, one call per millisecond for ten backoff periods: one
+     * event per backoff, each exactly 1000 ms after the previous one. */
+    for (t = 101; t <= 10000; t++) {
+        if (llp4_rel_tx_service(&tx, t) == LLP4_REL_TX_EXHAUSTED) {
+            TEST_ASSERT_TRUE(event_count <
+                             (uint8_t)(sizeof(events) / sizeof(events[0])));
+            events[event_count++] = t;
+        }
+    }
+    TEST_ASSERT_EQUAL_UINT8(10, event_count); /* 100, 1100, ..., 9100 */
+    for (t = 1; t < event_count; t++) {
+        TEST_ASSERT_EQUAL_UINT16(
+            LLP4_REL_DEFAULT_BACKOFF_MS,
+            (uint16_t)(events[t] - events[t - 1]));
+    }
+
+    /* An ACK still releases the window from the exhausted state. */
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack(&tx, 2));
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_tx_on_ack(&tx, 3));
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_IDLE, llp4_rel_tx_service(&tx, 10100));
+}
+
 void test_rel_tx_ack_releases_window(void)
 {
     llp4_rel_tx_t tx;

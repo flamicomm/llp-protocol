@@ -75,9 +75,25 @@ garbage) and checks five invariants on **every** input:
 4. the returned error code matches `p->error` and is one of the four;
 5. after any input, a repeated good frame is accepted (resynchronisation).
 
+A second campaign in the same tool drives Profile R1 and the SPSC ring with
+random interleavings of command, ACK and HELLO events plus push/pop operations:
+
+6. a frame emitted by the R1 sender parses back on channel 1 with the same SEQ
+   and DATA (the receiver never delivers corrupted bytes);
+7. retransmissions are byte-identical, never exceed `max_retries`, and
+   exhaustion is never reported before them or twice in one millisecond;
+8. the ring is a capacity-(`size`-1) FIFO that matches a shadow model byte for
+   byte and never reorders or loses data.
+
 ```
-600 000 inputs across 3 seeds, AddressSanitizer + UBSan: no failures
+sh scripts/check_robustness.sh     # the gate
+  100 000 core inputs (seed 1) + 20 000 R1/ring inputs, table CRC
+   20 000 core inputs (seed 1) + 20 000 R1/ring inputs, bitwise CRC
+  both with AddressSanitizer + UBSan: no failures
 ```
+
+`FUZZ_ITERS` / `FUZZ_SEED` (and `FUZZ_ITERS_BITS`) scale the campaign; CI runs
+the numbers above, which is what the README quotes.
 
 A stray `0xAA` at a frame boundary can consume the next byte as an escape
 continuation, which costs exactly one frame; the following frame resynchronises.

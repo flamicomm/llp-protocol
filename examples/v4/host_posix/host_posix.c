@@ -15,6 +15,8 @@
  *      examples/v4/host_posix/host_posix.c -o /tmp/host_posix
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -22,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "llp_v4.h"
@@ -33,6 +36,22 @@
 /* ------------------------------------------------------------------------- */
 /* Helpers                                                                   */
 /* ------------------------------------------------------------------------- */
+
+/* The parser never reads a clock: the adapter injects it. Use the monotonic
+ * clock, so a truncated frame is actually detected; a constant `now_ms` would
+ * keep the inter-byte timeout from ever firing. The 32-bit millisecond value
+ * wraps into the 16-bit domain the parser expects (its subtraction is
+ * wrap-safe). */
+static uint16_t now_ms(void)
+{
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        return 0;
+    }
+    return (uint16_t)((uint32_t)ts.tv_sec * 1000u +
+                      (uint32_t)(ts.tv_nsec / 1000000L));
+}
 
 static uint32_t rng_state = 0x12345678u;
 
@@ -257,7 +276,7 @@ static void serve_fd(int fd_in, int fd_out)
 
     while ((n = read(fd_in, chunk, sizeof(chunk))) > 0) {
         for (i = 0; i < (size_t)n; i++) {
-            if (llp4_parser_feed(&parser, chunk[i], 0) == LLP4_EV_FRAME) {
+            if (llp4_parser_feed(&parser, chunk[i], now_ms()) == LLP4_EV_FRAME) {
                 uint8_t len = 0;
                 const uint8_t *data = llp4_parser_payload(&parser, &len);
                 uint8_t out[MAX_FRAME];

@@ -107,6 +107,24 @@ ISR(TIMER1_COMPA_vect)
     ticks++;
 }
 
+/* `ticks` is written by the timer ISR and read by the main loop; a 16-bit read
+ * is two byte loads on AVR, so a plain `uint16_t now = ticks;` can tear when
+ * the ISR fires between them. Take a snapshot with interrupts disabled and
+ * restore the previous state (not an unconditional `sei()`, which would enable
+ * interrupts from inside another critical section). This is the same pattern
+ * as ATOMIC_BLOCK(ATOMIC_RESTORESTATE) from <util/atomic.h>, without pulling
+ * in the header; docs/INTEGRATION.md documents it. */
+static uint16_t ticks_read(void)
+{
+    uint8_t sreg = SREG;
+    uint16_t value;
+
+    cli();
+    value = ticks;
+    SREG = sreg;
+    return value;
+}
+
 /* ------------------------------------------------------------------------- */
 /* Encoder                                                                   */
 /* ------------------------------------------------------------------------- */
@@ -123,14 +141,14 @@ static void link_write(void *ctx, uint8_t byte)
 static int tx_reserve(uint8_t len)
 {
     uint16_t needed = (uint16_t)llp4_frame_size(len);
-    uint16_t start = ticks;
+    uint16_t start = ticks_read();
 
     if (needed > llp4_ring_capacity(&tx_ring)) {
         return 0; /* will never fit: the caller must use smaller frames */
     }
     while (llp4_ring_free(&tx_ring) < needed) {
         tx_kick();
-        if ((uint16_t)((uint16_t)ticks - start) > 20u) {
+        if ((uint16_t)(ticks_read() - start) > 20u) {
             return 0; /* bounded wait */
         }
     }
@@ -211,7 +229,7 @@ static void poll_link(void)
     uint8_t byte;
 
     while (llp4_ring_pop(&rx_ring, &byte)) {
-        if (llp4_parser_feed(&parser, byte, ticks) == LLP4_EV_FRAME) {
+        if (llp4_parser_feed(&parser, byte, ticks_read()) == LLP4_EV_FRAME) {
             handle_frame(llp4_parser_channel(&parser), payload, parser.length);
         }
     }
@@ -220,7 +238,7 @@ static void poll_link(void)
 static void telemetry(void)
 {
     static uint16_t last;
-    uint16_t now = ticks;
+    uint16_t now = ticks_read();
     uint8_t report[2];
 
     if ((uint16_t)(now - last) < 1000u) {

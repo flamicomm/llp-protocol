@@ -8,6 +8,7 @@ void test_v4_encode_vectors(void);
 void test_v4_decode_vectors(void);
 void test_v4_frame_size(void);
 void test_v4_crc_matches_bitwise_reference(void);
+void test_v4_crc_kat_check_string(void);
 void test_v4_crc_seed_covers_magic(void);
 void test_v4_parser_state_is_small(void);
 void test_v4_encode_rejects_small_buffer(void);
@@ -19,6 +20,7 @@ void test_v4_parser_init_clamps_timeout(void);
 void test_v4_capacity_error_before_payload(void);
 void test_v4_bad_crc_is_not_delivered_then_recovers(void);
 void test_v4_timeout_wraps_at_16_bits(void);
+void test_v4_timeout_while_waiting_for_magic2(void);
 
 /* Ring helper (include/llp_v4_ring.h) */
 void test_v4_ring_init(void);
@@ -37,6 +39,7 @@ void test_rel_tx_start_rejects_busy_window(void);
 void test_rel_tx_start_rejects_oversized_data(void);
 void test_rel_tx_retransmits_identical_payload_after_timeout(void);
 void test_rel_tx_exhausts_and_backs_off(void);
+void test_rel_tx_exhausted_reports_once_per_backoff(void);
 void test_rel_tx_ack_releases_window(void);
 void test_rel_tx_on_ack_frame_requires_single_byte(void);
 void test_rel_tx_abort_releases_window(void);
@@ -67,6 +70,7 @@ int main(void)
     /* Core behaviour */
     RUN_TEST(test_v4_frame_size);
     RUN_TEST(test_v4_crc_matches_bitwise_reference);
+    RUN_TEST(test_v4_crc_kat_check_string);
     RUN_TEST(test_v4_crc_seed_covers_magic);
     RUN_TEST(test_v4_parser_state_is_small);
     RUN_TEST(test_v4_encode_rejects_small_buffer);
@@ -78,6 +82,7 @@ int main(void)
     RUN_TEST(test_v4_capacity_error_before_payload);
     RUN_TEST(test_v4_bad_crc_is_not_delivered_then_recovers);
     RUN_TEST(test_v4_timeout_wraps_at_16_bits);
+    RUN_TEST(test_v4_timeout_while_waiting_for_magic2);
 
     /* Ring helper */
     RUN_TEST(test_v4_ring_init);
@@ -96,6 +101,7 @@ int main(void)
     RUN_TEST(test_rel_tx_start_rejects_oversized_data);
     RUN_TEST(test_rel_tx_retransmits_identical_payload_after_timeout);
     RUN_TEST(test_rel_tx_exhausts_and_backs_off);
+    RUN_TEST(test_rel_tx_exhausted_reports_once_per_backoff);
     RUN_TEST(test_rel_tx_ack_releases_window);
     RUN_TEST(test_rel_tx_on_ack_frame_requires_single_byte);
     RUN_TEST(test_rel_tx_abort_releases_window);

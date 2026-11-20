@@ -20,33 +20,39 @@ One command runs everything CI runs:
 
 ```bash
 pio test -e test && \
+pio test -e test_bits && \
 python3 scripts/check_corpus.py && \
 sh scripts/check_robustness.sh && \
 sh scripts/check_examples.sh && \
 python3 scripts/measure_v4.py --budget
 ```
 
+`test_bits` is the same suite compiled with `LLP4_CRC_TABLE=0`: without it the
+bitwise branch of `llp4_crc16_update()` would never run in CI. Both builds are
+anchored to the normative KAT (`"123456789"` → `0x29B1`, SPEC-v4 §4).
+
 ## Unit and conformance suite
 
 ```bash
-pio test -e test          # 47 test cases
+pio test -e test          # 50 test cases
+pio test -e test_bits     # 50 test cases, bitwise CRC
 pio test -e test -v       # with the Unity output of every case
 pio test -e test --filter test_v4_rel   # one suite
 ```
 
-Current result: **47 test cases, 47 succeeded**. The count is derived, not
-remembered:
+Current result: **50 test cases, 50 succeeded** in both environments. The count
+is derived, not remembered:
 
 ```bash
-grep -c 'RUN_TEST(' test/test_main.c                              # 47 registered
-grep -c '^void test_' test/test_v4.c test/test_v4_ring.c test/test_v4_rel.c   # 15, 6, 26
+grep -c 'RUN_TEST(' test/test_main.c                              # 50 registered
+grep -c '^void test_' test/test_v4.c test/test_v4_ring.c test/test_v4_rel.c   # 17, 6, 27
 ```
 
 | Suite | Tests | Focus |
 |---|---:|---|
-| `test/test_v4.c` | 15 | Core behaviour + both corpus tables (`llp4_vec_encode[]`, `llp4_vec_decode[]`) |
+| `test/test_v4.c` | 17 | Core behaviour + both corpus tables (`llp4_vec_encode[]`, `llp4_vec_decode[]`) |
 | `test/test_v4_ring.c` | 6 | SPSC ring helper |
-| `test/test_v4_rel.c` | 26 | Profile R1 state machines + conformance traces T1–T9 |
+| `test/test_v4_rel.c` | 27 | Profile R1 state machines + conformance traces T1–T9 |
 
 `test_v4.c` walks the generated fixture row by row: each encode row checks the
 streaming writer and the buffer wrapper against the expected frame, each decode
@@ -80,7 +86,10 @@ sh scripts/check_robustness.sh
 Two gates, both built with `-fsanitize=address,undefined`:
 
 - **Property fuzzer** (`tools/fuzz_v4.c`): four input distributions, five
-  invariants, 100 000 inputs per seed.
+  wire/parser invariants, 100 000 inputs (seed 1) with the CRC table and
+  20 000 with the bitwise CRC (`LLP4_CRC_TABLE=0`). Each campaign is followed by
+  20 000 random R1 command/ACK/HELLO + ring push/pop interleavings (invariants
+  6–8: delivery bytes, retransmission identity/bounds, FIFO order).
 - **Noise channel** (`tools/noise_report.c`): bit flips, drops, inserts and bursts
   over 400 frames per scenario, plus a false-accept run over pure random bytes.
   The table in `docs/ROBUSTNESS.md` must match the measurement, so a regression in
