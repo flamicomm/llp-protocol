@@ -1,8 +1,13 @@
 /* LLP wire format 4.0.0 — unit and conformance tests.
  *
- * The conformance cases come from spec/vectors/v4/*.json, converted to C by
- * `python3 scripts/gen_vectors_v4.py --emit-c test/v4_vectors_generated.h`.
- * Regenerate that header whenever the vectors change.
+ * The conformance cases are the canonical corpus of llp-spec, converted to C
+ * by `python3 ../llp-spec/tools/build_vectors.py --emit-c
+ * test/v4_vectors_generated.h` (or `sh scripts/sync_corpus.sh`, which also
+ * vendors the JSON and its manifest). `scripts/check_corpus.py` fails if the
+ * committed header or the vendored corpus drifts. Never edit the header.
+ *
+ * Profile R1's nine wire vectors are not emitted by `--emit-c` yet; they are
+ * covered by test_v4_rel.c (see docs/CONFORMANCE.md, L-I1b).
  */
 
 #include <string.h>
@@ -61,6 +66,11 @@ void test_v4_encode_vectors(void)
 {
     size_t i;
 
+    /* Corpus pin: the canonical llp-spec corpus emits 60 encode cases
+     * (the 6 R1 encode vectors are not emitted yet, see CONFORMANCE.md).
+     * A truncated fixture fails here before the loop can pass vacuously. */
+    TEST_ASSERT_EQUAL_UINT16(60, (uint16_t)LLP4_VEC_ENCODE_COUNT);
+
     for (i = 0; i < LLP4_VEC_ENCODE_COUNT; i++) {
         const llp4_vec_encode_t *c = &llp4_vec_encode[i];
         uint8_t out[600];
@@ -86,28 +96,30 @@ void test_v4_decode_vectors(void)
     uint8_t payload_buf[256];
     size_t i;
 
+    /* Corpus pin: 101 decode cases (decode + errors + timing + channels +
+     * payload + streams) from llp-spec's canonical corpus; the 3 R1 decode
+     * vectors are not emitted yet (see CONFORMANCE.md). */
+    TEST_ASSERT_EQUAL_UINT16(101, (uint16_t)LLP4_VEC_DECODE_COUNT);
+
     for (i = 0; i < LLP4_VEC_DECODE_COUNT; i++) {
         const llp4_vec_decode_t *c = &llp4_vec_decode[i];
         llp4_parser_t p;
         uint16_t now = 0;
         uint16_t step;
-        uint16_t step_count;
         uint8_t frames = 0;
         uint8_t errors = 0;
 
         llp4_parser_init(&p, payload_buf, c->capacity, c->timeout_ms);
-        step_count = (c->steps != NULL) ? c->step_count : c->frame_len;
 
-        for (step = 0; step < step_count; step++) {
+        /* The canonical fixture always carries the per-byte steps (compact
+         * frames and chunked streams are flattened with dt_ms = 0). */
+        TEST_ASSERT_NOT_NULL_MESSAGE(c->steps, c->id);
+        for (step = 0; step < c->step_count; step++) {
             uint8_t byte;
             int rc;
 
-            if (c->steps != NULL) {
-                now = (uint16_t)(now + c->steps[step].dt_ms);
-                byte = c->steps[step].byte;
-            } else {
-                byte = c->frame[step];
-            }
+            now = (uint16_t)(now + c->steps[step].dt_ms);
+            byte = c->steps[step].byte;
 
             rc = llp4_parser_feed(&p, byte, now);
 

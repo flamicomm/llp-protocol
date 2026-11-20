@@ -20,11 +20,23 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
-      - name: Check wire-format v4 conformance vectors
-        run: |
-          python3 scripts/gen_vectors_v4.py --check
-          python3 scripts/gen_vectors_v4.py --emit-c /tmp/v4_vectors_generated.h
-          diff -u test/v4_vectors_generated.h /tmp/v4_vectors_generated.h
+      - name: Check out llp-spec (normative corpus)
+        uses: actions/checkout@v4
+        with:
+          repository: flamicomm/llp-spec
+          path: llp-spec
+          # The integration branch this repository vendors from (llp-spec's
+          # `main` only moves on release). The corpus check below is what makes
+          # drift visible: when llp-spec's dev advances, re-vendor here.
+          ref: dev
+
+      - name: Check vendored corpus, fixture pin and regeneration
+        # Offline pins (MANIFEST.sha256 + FIXTURE.sha256) always run; with the
+        # llp-spec checkout above this also fails when the corpus changed there
+        # without re-vendoring here, and when --emit-c no longer reproduces the
+        # committed header byte for byte. A red run on an unrelated PR means
+        # llp-spec advanced: run sh scripts/sync_corpus.sh.
+        run: python3 scripts/check_corpus.py --spec-dir llp-spec
 
       - name: Install AVR toolchain (and build the AVR demo)
         run: pio run -e arduino_uno

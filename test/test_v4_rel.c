@@ -402,7 +402,8 @@ void test_rel_trace_t7_unknown_ack(void)
 }
 
 /* T8: a duplicate arriving after the sender gave up is still acknowledged and
-       still not delivered twice. */void test_rel_trace_t8_late_duplicate_after_exhaustion(void)
+       still not delivered twice. */
+void test_rel_trace_t8_late_duplicate_after_exhaustion(void)
 {
     llp4_rel_tx_t tx;
     llp4_rel_rx_t rx;

@@ -178,6 +178,37 @@ The rule that is easy to get wrong: **check that the payload fits before
 consuming the sequence number**. If it does not fit, do not ACK, so the sender
 retries instead of the command being lost.
 
+## Threat model
+
+LLP is a framing layer for a link you already trust; it is not a security
+protocol. Two properties are easy to over-read, so state them plainly:
+
+| Claim | What it actually means |
+|---|---|
+| The CRC16 catches corruption | It is an **integrity check against noise**: bit flips, dropped or inserted bytes, a truncated frame. It is not a MAC: there is no key, an adversary who can write to the link can compute a valid frame byte by byte, and any 16-bit residue collides with probability 2⁻¹⁶ |
+| Profile R1 suppresses duplicates | It remembers the **last accepted `SEQ`** on the receiver, so an immediate retransmission (lost ACK) is not delivered twice. It is **not anti-replay**: any frame carrying a different `SEQ` is accepted, a recorded frame replayed much later is accepted, and `HELLO` on channel 3 — which resets the session on purpose, so a rebooted sender is not mistaken for a duplicate — is itself unauthenticated |
+
+What follows from that:
+
+- **No confidentiality.** Payloads are plaintext on the wire; stuffing is an
+  escape mechanism, not encryption.
+- **No authentication, no identity.** `CHANNEL` is routing, not a capability.
+  Channel 2 (ACK) and channel 3 (HELLO) are consumed by the ESP bridge; whoever
+  can send bytes can also ACK, forge a session reset or inject commands.
+- **No delivery guarantee.** R1 retransmits a fixed number of times and then
+  reports exhaustion: the caller decides what an undelivered command means.
+- **No flow control and no ordering across channels.** Channel 0 is fire and
+  forget by design.
+- **Availability is not defended.** A link that is jammed or flooded just makes
+  the parser emit errors and the sender exhaust retries; the recovery behaviour
+  measured in `docs/ROBUSTNESS.md` assumes noise, not an attacker.
+
+The trust boundary is therefore the physical or link layer: a UART/RS-485 cable
+inside the machine, or a TCP link that is already authenticated elsewhere. If the
+link crosses a network you do not control, terminate an authenticated, encrypted
+channel (TLS, WireGuard, an SSH tunnel) underneath and keep LLP as framing only —
+do not add a bespoke MAC to the payload and call it security.
+
 ## Testing your integration
 
 1. Run the conformance vectors first (`docs/CONFORMANCE.md`) — they validate the
@@ -196,3 +227,4 @@ retries instead of the command being lost.
 - [ ] The frame handler never blocks the ISR that feeds the parser.
 - [ ] Nothing is acted upon before `feed()` returns a frame (the CRC guarantee).
 - [ ] Unknown channels are ignored, not treated as errors.
+- [ ] The CRC is treated as a noise check, not as authentication (Threat model).

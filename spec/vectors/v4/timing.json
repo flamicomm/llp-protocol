@@ -1,11 +1,15 @@
 {
   "spec": "llp/4.0.0",
-  "description": "Inter-byte timeout: gaps, boundary and recovery.",
-  "generated_by": "scripts/gen_vectors_v4.py",
+  "schema_version": "2.0.0",
+  "category": "transport_timing",
+  "description": "Inter-byte timeout with injected time: gaps, boundary, recovery, 16-bit wrap.",
+  "generated_by": "tools/build_vectors.py",
   "cases": [
     {
       "id": "timeout-mid-frame",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -30,11 +34,11 @@
         },
         {
           "hex": "00",
-          "dt_ms": 2100
+          "dt_ms": 0
         },
         {
           "hex": "68",
-          "dt_ms": 0
+          "dt_ms": 2100
         },
         {
           "hex": "65",
@@ -61,128 +65,13 @@
           "dt_ms": 0
         }
       ],
-      "note": "a gap > timeout_ms in the middle of a frame resets the parser"
-    },
-    {
-      "id": "timeout-then-recover",
-      "kind": "decode",
-      "capacity": 255,
-      "timeout_ms": 2000,
-      "expect": {
-        "frames": [
-          {
-            "channel": 1,
-            "payload": "61667465722d74696d656f7574"
-          }
-        ],
-        "errors": [
-          "LLP_ERR_TIMEOUT"
-        ],
-        "timeouts": 1
-      },
-      "feed": [
-        {
-          "hex": "aa",
-          "dt_ms": 0
-        },
-        {
-          "hex": "55",
-          "dt_ms": 0
-        },
-        {
-          "hex": "05",
-          "dt_ms": 0
-        },
-        {
-          "hex": "00",
-          "dt_ms": 0
-        },
-        {
-          "hex": "68",
-          "dt_ms": 0
-        },
-        {
-          "hex": "aa",
-          "dt_ms": 2001
-        },
-        {
-          "hex": "55",
-          "dt_ms": 0
-        },
-        {
-          "hex": "0d",
-          "dt_ms": 0
-        },
-        {
-          "hex": "01",
-          "dt_ms": 0
-        },
-        {
-          "hex": "61",
-          "dt_ms": 0
-        },
-        {
-          "hex": "66",
-          "dt_ms": 0
-        },
-        {
-          "hex": "74",
-          "dt_ms": 0
-        },
-        {
-          "hex": "65",
-          "dt_ms": 0
-        },
-        {
-          "hex": "72",
-          "dt_ms": 0
-        },
-        {
-          "hex": "2d",
-          "dt_ms": 0
-        },
-        {
-          "hex": "74",
-          "dt_ms": 0
-        },
-        {
-          "hex": "69",
-          "dt_ms": 0
-        },
-        {
-          "hex": "6d",
-          "dt_ms": 0
-        },
-        {
-          "hex": "65",
-          "dt_ms": 0
-        },
-        {
-          "hex": "6f",
-          "dt_ms": 0
-        },
-        {
-          "hex": "75",
-          "dt_ms": 0
-        },
-        {
-          "hex": "74",
-          "dt_ms": 0
-        },
-        {
-          "hex": "02",
-          "dt_ms": 0
-        },
-        {
-          "hex": "1b",
-          "dt_ms": 0
-        }
-      ],
-      "note": "the byte that follows the gap is re-examined as a new magic"
+      "note": "a gap greater than timeout_ms in the middle of a frame resets the parser"
     },
     {
       "id": "timeout-exactly-at-limit-is-ok",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -244,8 +133,71 @@
       "note": "the rule is strictly greater than timeout_ms"
     },
     {
-      "id": "timeout-idle-before-magic-is-not-an-error",
+      "id": "timeout-limit-plus-one-fails",
       "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "aa",
+          "dt_ms": 0
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "05",
+          "dt_ms": 0
+        },
+        {
+          "hex": "00",
+          "dt_ms": 2001
+        },
+        {
+          "hex": "68",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 0
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 0
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 0
+        }
+      ]
+    },
+    {
+      "id": "timeout-idle-before-magic-is-silent",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -307,8 +259,10 @@
       "note": "no timeout is reported while waiting for the magic"
     },
     {
-      "id": "timeout-between-frames",
+      "id": "timeout-between-frames-is-silent",
       "kind": "decode",
+      "result": "valid",
+      "flags": [],
       "capacity": 255,
       "timeout_ms": 2000,
       "expect": {
@@ -447,7 +401,505 @@
           "dt_ms": 0
         }
       ],
-      "note": "the parser is in WAIT_MAGIC1 between frames, no timeout"
+      "note": "between frames the parser is in WAIT_MAGIC1, so no error"
+    },
+    {
+      "id": "timeout-then-byte-re-examined-as-magic",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 1,
+            "payload": "61667465722d74696d656f7574"
+          }
+        ],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "aa",
+          "dt_ms": 0
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "05",
+          "dt_ms": 0
+        },
+        {
+          "hex": "00",
+          "dt_ms": 0
+        },
+        {
+          "hex": "68",
+          "dt_ms": 0
+        },
+        {
+          "hex": "aa",
+          "dt_ms": 2001
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "0d",
+          "dt_ms": 0
+        },
+        {
+          "hex": "01",
+          "dt_ms": 0
+        },
+        {
+          "hex": "61",
+          "dt_ms": 0
+        },
+        {
+          "hex": "66",
+          "dt_ms": 0
+        },
+        {
+          "hex": "74",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "72",
+          "dt_ms": 0
+        },
+        {
+          "hex": "2d",
+          "dt_ms": 0
+        },
+        {
+          "hex": "74",
+          "dt_ms": 0
+        },
+        {
+          "hex": "69",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6d",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 0
+        },
+        {
+          "hex": "75",
+          "dt_ms": 0
+        },
+        {
+          "hex": "74",
+          "dt_ms": 0
+        },
+        {
+          "hex": "02",
+          "dt_ms": 0
+        },
+        {
+          "hex": "1b",
+          "dt_ms": 0
+        }
+      ],
+      "note": "the byte after the gap is re-examined as a possible magic"
+    },
+    {
+      "id": "timeout-at-len-state",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "aa",
+          "dt_ms": 0
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "05",
+          "dt_ms": 2001
+        },
+        {
+          "hex": "00",
+          "dt_ms": 0
+        },
+        {
+          "hex": "68",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 0
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 0
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 0
+        }
+      ]
+    },
+    {
+      "id": "timeout-at-channel-state",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "aa",
+          "dt_ms": 0
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "05",
+          "dt_ms": 0
+        },
+        {
+          "hex": "00",
+          "dt_ms": 2001
+        },
+        {
+          "hex": "68",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 0
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 0
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 0
+        }
+      ]
+    },
+    {
+      "id": "timeout-at-crc-low-state",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "aa",
+          "dt_ms": 0
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "05",
+          "dt_ms": 0
+        },
+        {
+          "hex": "00",
+          "dt_ms": 0
+        },
+        {
+          "hex": "68",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 0
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 2001
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 0
+        }
+      ]
+    },
+    {
+      "id": "timeout-at-crc-high-state",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "aa",
+          "dt_ms": 0
+        },
+        {
+          "hex": "55",
+          "dt_ms": 0
+        },
+        {
+          "hex": "05",
+          "dt_ms": 0
+        },
+        {
+          "hex": "00",
+          "dt_ms": 0
+        },
+        {
+          "hex": "68",
+          "dt_ms": 0
+        },
+        {
+          "hex": "65",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 0
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 0
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 0
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 2001
+        }
+      ]
+    },
+    {
+      "id": "timeout-16bit-wrap-is-not-a-timeout",
+      "kind": "decode",
+      "result": "valid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [
+          {
+            "channel": 0,
+            "payload": "68656c6c6f"
+          }
+        ],
+        "errors": [],
+        "timeouts": 0
+      },
+      "feed": [
+        {
+          "hex": "00",
+          "dt_ms": 65530
+        },
+        {
+          "hex": "aa",
+          "dt_ms": 1
+        },
+        {
+          "hex": "55",
+          "dt_ms": 1
+        },
+        {
+          "hex": "05",
+          "dt_ms": 1
+        },
+        {
+          "hex": "00",
+          "dt_ms": 1
+        },
+        {
+          "hex": "68",
+          "dt_ms": 1
+        },
+        {
+          "hex": "65",
+          "dt_ms": 1
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 1
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 1
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 1
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 1
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 1
+        }
+      ],
+      "note": "the timestamp wraps at 65536 mid-frame and the gap still compares correctly"
+    },
+    {
+      "id": "timeout-16bit-wrap-detected",
+      "kind": "decode",
+      "result": "invalid",
+      "flags": [],
+      "capacity": 255,
+      "timeout_ms": 2000,
+      "expect": {
+        "frames": [],
+        "errors": [
+          "LLP_ERR_TIMEOUT"
+        ],
+        "timeouts": 1
+      },
+      "feed": [
+        {
+          "hex": "00",
+          "dt_ms": 65530
+        },
+        {
+          "hex": "aa",
+          "dt_ms": 1
+        },
+        {
+          "hex": "55",
+          "dt_ms": 1
+        },
+        {
+          "hex": "05",
+          "dt_ms": 1
+        },
+        {
+          "hex": "00",
+          "dt_ms": 1
+        },
+        {
+          "hex": "68",
+          "dt_ms": 1
+        },
+        {
+          "hex": "65",
+          "dt_ms": 2001
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 1
+        },
+        {
+          "hex": "6c",
+          "dt_ms": 1
+        },
+        {
+          "hex": "6f",
+          "dt_ms": 1
+        },
+        {
+          "hex": "bb",
+          "dt_ms": 1
+        },
+        {
+          "hex": "d6",
+          "dt_ms": 1
+        }
+      ],
+      "note": "a gap across the wrap is measured correctly, not as a huge unsigned value"
     }
   ]
 }

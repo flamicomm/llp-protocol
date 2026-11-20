@@ -101,9 +101,16 @@ pressure into a retransmission instead of a dropped command.
 
 | Item | Bytes |
 |---|---:|
-| `llp4_rel_tx_t` | 74 (63-byte payload + bookkeeping) |
+| `llp4_rel_tx_t` | 76 on AVR (63-byte payload + bookkeeping) |
 | `llp4_rel_rx_t` | 6 |
 | Flash | 0 when a side is unused (all functions are `static inline`) |
+
+`llp4_rel_tx_t` is 76 B on AVR, where the struct has no padding, and 78 B on a
+64-bit host, where `uint16_t` needs two-byte alignment (one pad byte before
+`sent_ms`, one of tail padding). Both figures are gated: `sizeof(llp4_rel_tx_t)`
+is asserted at compile time in [`../src/llp_v4_check.c`](../src/llp_v4_check.c)
+(`== 76` on AVR, `<= 78` elsewhere) and `python3 scripts/measure_v4.py --budget`
+fails if the AVR figure grows past 76 B.
 
 A receiver-only target (the AVR firmware) only instantiates the 6-byte state.
 

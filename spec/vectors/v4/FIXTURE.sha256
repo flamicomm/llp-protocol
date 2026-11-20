@@ -1,0 +1,3 @@
+# sha256 of the C fixture emitted from the vendored corpus.
+# Regenerate with: sh scripts/sync_corpus.sh
+021500beb3127bb8ca0445cb3c85fbf27042cc2ab109f33f7cae7bad78ad3f54  test/v4_vectors_generated.h

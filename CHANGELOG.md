@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `scripts/sync_corpus.sh` and `scripts/check_corpus.py`: the conformance corpus
+  is vendored from `llp-spec` (`spec/vectors/v4/*.json` plus its
+  `MANIFEST.sha256`) and the emitted fixture is pinned by `FIXTURE.sha256`.
+  `check_corpus.py` verifies both offline and, when `../llp-spec` is present,
+  proves that `build_vectors.py --emit-c` reproduces the committed header byte
+  for byte.
+- `src/llp_v4_check.c`: compile-time asserts for the Profile R1 state
+  (`llp4_rel_tx_t` 76 B on AVR, `llp4_rel_rx_t` 6 B) next to the parser assert.
+- `docs/INTEGRATION.md`: threat model — CRC16 is a noise check, not
+  authentication, and R1 deduplication is not anti-replay.
 - `scripts/llp_v4_rel.py`: Python counterpart of the profile (vendored from the
   llp-spec reference), used by serial tools.
 - `llp_v4_rel.h`: optional **Profile R1**, a reliable command channel on top of
@@ -15,6 +25,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Normative text: llp-spec `docs/RELIABILITY.md`. Wire layout pinned by the new
   encode vectors `enc-rel-*`; behaviour covered by `test/test_v4_rel.c`
   (traces T1–T8).
+
+### Changed
+- The Unity suite now walks the canonical corpus of `llp-spec` instead of a local
+  29-case set: 60 encode and 101 decode rows (161 of the 170 cases; the nine
+  `rel-*` wire cases are not emitted by `--emit-c` yet, tracked as **L-I1b** in
+  `llp-spec`). The two counts are pinned inside the test so a truncated fixture
+  fails loudly. See `docs/CONFORMANCE.md`.
+- `docs/RELIABILITY.md`: `llp4_rel_tx_t` is 76 B on AVR (78 B on a 64-bit host,
+  where `uint16_t` is aligned); `scripts/measure_v4.py` gates the AVR figure.
+- `README.md`, `TESTING.md` and `STRUCTURE.md` rebuilt on v4 numbers: 42 test
+  cases (13 + 5 + 24) and counts derivable from a command instead of the stale
+  v3.1.0 "90 tests" table.
+
+### Removed
+- `scripts/gen_vectors_v4.py`: duplicate generator. The single generator is
+  `llp-spec/tools/build_vectors.py`, invoked through `scripts/sync_corpus.sh`.
 
 ### Planned
 - RS485 multi-node example
