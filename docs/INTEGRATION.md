@@ -90,8 +90,12 @@ Pass a 16-bit millisecond counter. Wrap-around is handled:
 uint16_t now = (uint16_t)millis();
 ```
 
-Timeouts must be `<= 32767 ms`. No timeout is reported while waiting for the
-magic, so an idle link is normal.
+Timeouts must be `<= 32767 ms`, the largest gap the wrap-safe comparison can
+represent (SPEC-v4 §8). `llp4_parser_init()` enforces it: a timeout of `0`
+selects `LLP4_DEFAULT_TIMEOUT_MS` and anything above 32767 is clamped, so a
+misconfigured value cannot turn into "every frame times out" or "the timeout
+never fires". No timeout is reported while waiting for the magic, so an idle
+link is normal.
 
 ### 5. Channels
 

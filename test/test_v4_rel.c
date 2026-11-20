@@ -106,6 +106,40 @@ void test_rel_tx_defaults(void)
     TEST_ASSERT_EQUAL_UINT16(LLP4_REL_DEFAULT_BACKOFF_MS, tx.backoff_ms);
 }
 
+/* Registry: max_retries = 0 exhausted the window with zero retransmissions
+ * (outside the normative range 1..10) and timers above 32767 never elapsed
+ * because the 16-bit wrap-safe difference cannot reach them. init clamps. */
+void test_rel_tx_init_clamps_config(void)
+{
+    llp4_rel_tx_t tx;
+
+    TEST_ASSERT_EQUAL_UINT32(1u, (uint32_t)LLP4_REL_MIN_RETRIES);
+    TEST_ASSERT_EQUAL_UINT32(10u, (uint32_t)LLP4_REL_MAX_RETRIES);
+
+    llp4_rel_tx_init(&tx, 50, 0, 1000);
+    TEST_ASSERT_EQUAL_UINT8(LLP4_REL_MIN_RETRIES, tx.max_retries);
+
+    llp4_rel_tx_init(&tx, 50, 50, 1000);
+    TEST_ASSERT_EQUAL_UINT8(LLP4_REL_MAX_RETRIES, tx.max_retries);
+
+    llp4_rel_tx_init(&tx, 50, 5, 1000); /* in range: untouched */
+    TEST_ASSERT_EQUAL_UINT8(5, tx.max_retries);
+
+    llp4_rel_tx_init(&tx, 60000, 5, 60000);
+    TEST_ASSERT_EQUAL_UINT16(LLP4_REL_MAX_TIMER_MS, tx.timeout_ms);
+    TEST_ASSERT_EQUAL_UINT16(LLP4_REL_MAX_TIMER_MS, tx.backoff_ms);
+
+    /* With max_retries = 0 clamped to 1 the sender must retransmit once and
+     * only then report exhaustion: never "exhausted with zero attempts". */
+    llp4_rel_tx_init(&tx, 100, 0, 1000);
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_tx_start(&tx, 7, (const uint8_t *)"x", 1, 0));
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_IDLE, llp4_rel_tx_service(&tx, 99));
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_SEND, llp4_rel_tx_service(&tx, 100));
+    TEST_ASSERT_EQUAL_UINT8(1, tx.retries);
+    TEST_ASSERT_EQUAL_INT(LLP4_REL_TX_EXHAUSTED, llp4_rel_tx_service(&tx, 200));
+    TEST_ASSERT_EQUAL_UINT8(1, tx.retries);
+}
+
 void test_rel_tx_start_builds_payload(void)
 {
     llp4_rel_tx_t tx;
@@ -206,6 +240,40 @@ void test_rel_tx_ack_releases_window(void)
     TEST_ASSERT_EQUAL_INT(1, llp4_rel_tx_on_ack(&tx, 7));
     TEST_ASSERT_EQUAL_UINT8(0, tx.active);
     TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack(&tx, 7));   /* idempotent */
+}
+
+/* Registry: the "ignore an ACK whose length is not 1" MUST lived only in the
+ * caller's dispatch. The helper enforces channel 2 + len == 1. */
+void test_rel_tx_on_ack_frame_requires_single_byte(void)
+{
+    llp4_rel_tx_t tx;
+    static const uint8_t ack7[] = {7};
+    static const uint8_t ack6[] = {6};
+    static const uint8_t ack_two_bytes[] = {7, 0};
+
+    llp4_rel_tx_init(&tx, 50, 5, 1000);
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_tx_start(&tx, 7, (const uint8_t *)"x", 1, 0));
+
+    /* Malformed or foreign frames leave the window untouched. */
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack_frame(&tx, LLP4_REL_CH_ACK,
+                                                      ack_two_bytes, 2));
+    TEST_ASSERT_EQUAL_UINT8(1, tx.active);
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack_frame(&tx, LLP4_REL_CH_ACK,
+                                                      ack7, 0));
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack_frame(&tx, LLP4_REL_CH_ACK,
+                                                      NULL, 0));
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack_frame(&tx, LLP4_REL_CH_COMMAND,
+                                                      ack7, 1));
+    TEST_ASSERT_EQUAL_UINT8(1, tx.active);
+
+    /* A well-formed ACK with the wrong SEQ is still stale. */
+    TEST_ASSERT_EQUAL_INT(0, llp4_rel_tx_on_ack_frame(&tx, LLP4_REL_CH_ACK,
+                                                      ack6, 1));
+    TEST_ASSERT_EQUAL_UINT8(1, tx.active);
+
+    TEST_ASSERT_EQUAL_INT(1, llp4_rel_tx_on_ack_frame(&tx, LLP4_REL_CH_ACK,
+                                                      ack7, 1));
+    TEST_ASSERT_EQUAL_UINT8(0, tx.active);
 }
 
 void test_rel_tx_abort_releases_window(void)

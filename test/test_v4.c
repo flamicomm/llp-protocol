@@ -271,6 +271,71 @@ void test_v4_zero_capacity_accepts_only_empty_payload(void)
     TEST_ASSERT_EQUAL_UINT8(0, p.length);
 }
 
+/* Registry: a NULL buffer with a non-zero capacity used to store the payload
+ * through the null pointer (SIGSEGV). The guard forces capacity 0, so a frame
+ * with LEN > 0 is rejected with LLP4_ERR_LEN before any byte is written. */
+void test_v4_parser_init_null_buffer_forces_zero_capacity(void)
+{
+    static const uint8_t frame3[] = {0xAA, 0x55, 0x03, 0x00,
+                                     0x6F, 0x6B, 0x0A, 0x08, 0xDB};
+    static const uint8_t empty_frame[] = {0xAA, 0x55, 0x00, 0x00, 0x23, 0xB3};
+    llp4_parser_t p;
+    size_t i;
+    int rc = LLP4_EV_NONE;
+
+    llp4_parser_init(&p, NULL, 16, LLP4_DEFAULT_TIMEOUT_MS);
+    TEST_ASSERT_EQUAL_UINT8(0, p.capacity);
+
+    for (i = 0; i < sizeof(frame3); i++) {
+        rc = llp4_parser_feed(&p, frame3[i], 0);
+        TEST_ASSERT_NOT_EQUAL(LLP4_EV_FRAME, rc);
+        if (i == 2) { /* LEN byte: rejected before any payload store */
+            TEST_ASSERT_EQUAL_INT(-LLP4_ERR_LEN, rc);
+            TEST_ASSERT_EQUAL_UINT8(LLP4_ERR_LEN, p.error);
+            TEST_ASSERT_EQUAL_UINT8(0, p.index);
+        }
+    }
+
+    /* The parser is still usable: an empty payload is the only valid frame. */
+    for (i = 0; i < sizeof(empty_frame); i++) {
+        rc = llp4_parser_feed(&p, empty_frame[i], 0);
+    }
+    TEST_ASSERT_EQUAL_INT(LLP4_EV_FRAME, rc);
+    TEST_ASSERT_EQUAL_UINT8(0, p.length);
+}
+
+/* Registry: timeout_ms accepted 0 (any inter-byte gap times out, so no
+ * multi-byte frame can arrive) and values above the 16-bit wrap-safe limit.
+ * init clamps both. */
+void test_v4_parser_init_clamps_timeout(void)
+{
+    static const uint8_t frame3[] = {0xAA, 0x55, 0x03, 0x00,
+                                     0x6F, 0x6B, 0x0A, 0x08, 0xDB};
+    llp4_parser_t p;
+    uint8_t buf[8];
+    size_t i;
+    int rc = LLP4_EV_NONE;
+
+    TEST_ASSERT_EQUAL_UINT32(32767u, (uint32_t)LLP4_TIMEOUT_MAX_MS);
+
+    llp4_parser_init(&p, buf, sizeof(buf), 0);
+    TEST_ASSERT_EQUAL_UINT16(LLP4_DEFAULT_TIMEOUT_MS, p.timeout_ms);
+
+    llp4_parser_init(&p, buf, sizeof(buf), 60000);
+    TEST_ASSERT_EQUAL_UINT16(LLP4_TIMEOUT_MAX_MS, p.timeout_ms);
+
+    llp4_parser_init(&p, buf, sizeof(buf), 500); /* in range: untouched */
+    TEST_ASSERT_EQUAL_UINT16(500, p.timeout_ms);
+
+    /* Behavioural check: with the clamped default, 1 ms per byte is fine. */
+    llp4_parser_init(&p, buf, sizeof(buf), 0);
+    for (i = 0; i < sizeof(frame3); i++) {
+        rc = llp4_parser_feed(&p, frame3[i], (uint16_t)i);
+    }
+    TEST_ASSERT_EQUAL_INT(LLP4_EV_FRAME, rc);
+    TEST_ASSERT_EQUAL_UINT8(3, p.length);
+}
+
 void test_v4_capacity_error_before_payload(void)
 {
     llp4_parser_t p;

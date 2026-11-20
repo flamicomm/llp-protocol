@@ -68,12 +68,41 @@ default:
     break;
 }
 
-/* on an ACK frame from channel 2 */
-llp4_rel_tx_on_ack(&tx, ack_seq);
+/* on a frame from channel 2: an ACK carries exactly one byte (§3) */
+llp4_rel_tx_on_ack_frame(&tx, channel, payload, len);
 ```
 
 `llp4_rel_tx_start()` returns 0 while the window is busy; with a window of one
 that only happens if the application sends faster than the link acknowledges.
+
+### The one-byte ACK rule
+
+§3 of the specification is a MUST on the sender side: *"A receiver MUST ignore
+an ACK frame whose length is not 1."* A frame on channel 2 with `LEN == 0` or
+`LEN > 1` is malformed (or belongs to another protocol that reuses the channel)
+and must not release the window. `llp4_rel_tx_on_ack_frame()` applies both
+checks — channel 2 **and** `len == 1` — and then defers to
+`llp4_rel_tx_on_ack()`, so no caller has to restate the rule:
+
+```c
+/* equivalent to the two checks above, without the helper */
+if (channel == LLP4_REL_CH_ACK && len == 1) {
+    llp4_rel_tx_on_ack(&tx, payload[0]);
+}
+```
+
+### Configuration guards
+
+`llp4_rel_tx_init()` clamps out-of-contract configuration once, in init, so a
+typo cannot change behaviour later (init-only cost, nothing in the per-event
+path):
+
+| Input | Clamped to | Why |
+|---|---|---|
+| `max_retries == 0` | `LLP4_REL_MIN_RETRIES` (1) | 0 means "exhaust with zero retransmissions", outside the normative 1–10 of §5.4 |
+| `max_retries > 10` | `LLP4_REL_MAX_RETRIES` (10) | upper end of the normative range |
+| `timeout_ms == 0` / `backoff_ms == 0` | their defaults | a zero timer would fire on every poll |
+| timer `> 32767` | `LLP4_REL_MAX_TIMER_MS` (32767) | the 16-bit wrap-safe difference cannot reach a larger value, so a 65535 ms timer would never elapse |
 
 ## Receiver recipe
 
@@ -120,7 +149,10 @@ A receiver-only target (the AVR firmware) only instantiates the 6-byte state.
 conformance traces of the specification (§11) plus the unit behaviour:
 retransmission keeps the payload byte-identical, exhaustion never reports
 delivery, stale ACKs are ignored, the sequence wraps at 256, and the profile
-payloads round-trip through the real wire format.
+payloads round-trip through the real wire format. It also pins the guards of
+this page: `max_retries` clamped into 1–10 (never "exhausted with zero
+retransmissions"), timers clamped to 32767, and an ACK frame with `len != 1`
+leaving the window untouched.
 
 The wire layout is also pinned in
 [`../spec/vectors/v4/encode.json`](../spec/vectors/v4/encode.json)

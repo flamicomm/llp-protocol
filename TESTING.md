@@ -29,24 +29,24 @@ python3 scripts/measure_v4.py --budget
 ## Unit and conformance suite
 
 ```bash
-pio test -e test          # 42 test cases
+pio test -e test          # 47 test cases
 pio test -e test -v       # with the Unity output of every case
 pio test -e test --filter test_v4_rel   # one suite
 ```
 
-Current result: **42 test cases, 42 succeeded**. The count is derived, not
+Current result: **47 test cases, 47 succeeded**. The count is derived, not
 remembered:
 
 ```bash
-grep -c 'RUN_TEST(' test/test_main.c                              # 42 registered
-grep -c '^void test_' test/test_v4.c test/test_v4_ring.c test/test_v4_rel.c   # 13, 5, 24
+grep -c 'RUN_TEST(' test/test_main.c                              # 47 registered
+grep -c '^void test_' test/test_v4.c test/test_v4_ring.c test/test_v4_rel.c   # 15, 6, 26
 ```
 
 | Suite | Tests | Focus |
 |---|---:|---|
-| `test/test_v4.c` | 13 | Core behaviour + both corpus tables (`llp4_vec_encode[]`, `llp4_vec_decode[]`) |
-| `test/test_v4_ring.c` | 5 | SPSC ring helper |
-| `test/test_v4_rel.c` | 24 | Profile R1 state machines + conformance traces T1–T9 |
+| `test/test_v4.c` | 15 | Core behaviour + both corpus tables (`llp4_vec_encode[]`, `llp4_vec_decode[]`) |
+| `test/test_v4_ring.c` | 6 | SPSC ring helper |
+| `test/test_v4_rel.c` | 26 | Profile R1 state machines + conformance traces T1–T9 |
 
 `test_v4.c` walks the generated fixture row by row: each encode row checks the
 streaming writer and the buffer wrapper against the expected frame, each decode
