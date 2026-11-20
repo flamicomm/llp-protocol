@@ -151,6 +151,16 @@ if (rc == LLP4_EV_FRAME) {
 | `llp4_parser_discard()` | drop the frame in progress |
 | `llp4_parser_payload()` / `_channel()` | accessors for the last frame |
 
+`llp4_parser_init()` rejects two contract violations instead of trusting the
+caller (both checks are init-only, nothing is added to the per-byte path):
+
+- `buf == NULL` forces `cap = 0`, so a frame with `LEN > 0` is answered with
+  `LLP4_ERR_LEN` before a single byte is stored. Only empty payloads are
+  delivered; the parser never writes through the null pointer.
+- `timeout_ms == 0` selects `LLP4_DEFAULT_TIMEOUT_MS`, and values above
+  `LLP4_TIMEOUT_MAX_MS` (32767) are clamped to it, because a longer gap cannot be
+  represented by the 16-bit wrap-safe comparison (SPEC-v4 §8).
+
 ### Encoder
 
 ```c
@@ -174,13 +184,32 @@ convenience wrapper when the caller does have a buffer.
 indices (atomic on 8-bit MCUs) for links up to 254 bytes: `llp4_ring_init`,
 `_push`, `_pop`, `_count`, `_free`, `_capacity`.
 
+An invalid configuration (`buf == NULL`, or `size < 2` — one slot is reserved to
+tell full from empty) leaves the ring **disabled**: capacity is 0 and every
+push/pop is a no-op, instead of `size - 1` wrapping to a bogus capacity and the
+first push writing out of bounds.
+
 ### Configuration
 
 | Macro | Default | Effect |
 |---|---|---|
-| `LLP4_DEFAULT_TIMEOUT_MS` | `2000` | Suggested inter-byte timeout |
+| `LLP4_DEFAULT_TIMEOUT_MS` | `2000` | Inter-byte timeout used when `llp4_parser_init()` is called with 0 |
+| `LLP4_TIMEOUT_MAX_MS` | `32767` | Upper bound of the wrap-safe inter-byte timeout |
 | `LLP4_ENABLE_STATS` | `0` | Parser counters (+6 bytes) |
 | `LLP4_CRC_TABLE` | `1` | 16-nibble CRC table (flash on AVR) vs bitwise |
+
+**There is no compile-time sizing.** The v4 payload capacity is a runtime
+`uint8_t cap` passed to `llp4_parser_init()`, the inter-byte timeout is another
+argument of that call, and the CRC/stats switches above only trade flash for
+speed. The v3 flags `LLP_MAX_PAYLOAD`, `LLP_FRAME_TIMEOUT_MS` and
+`LLP_ENABLE_STATS` were removed from `platformio.ini`: the v4 headers never read
+them.
+
+The Python reference applies the same init guards, so a test that passes on the
+host means the same thing in `scripts/llp_v4.py` / `scripts/llp_v4_rel.py`:
+`Parser(timeout_ms=...)` clamps like `llp4_parser_init()` and `Sender(...)`
+clamps `max_retries` like `llp4_rel_tx_init()`. Both files have a `--self-test`
+that pins it.
 
 ## Memory Footprint
 
@@ -237,8 +266,10 @@ Integration guide (context rules, sizing, RS-485, text-over-LLP):
 ## Testing
 
 ```bash
-pio test -e test                       # 42 Unity tests (core + corpus + ring + R1)
+pio test -e test                       # 47 Unity tests (core + corpus + ring + R1)
 python3 scripts/check_corpus.py        # canonical corpus + fixture pin
+python3 scripts/llp_v4.py --self-test      # Python reference: init guards
+python3 scripts/llp_v4_rel.py --self-test  # Python reference: R1 guards
 sh scripts/check_robustness.sh         # property fuzzer + noise channel
 sh scripts/check_examples.sh           # builds/runs the examples
 python3 scripts/measure_v4.py --budget # RAM/flash gates
@@ -246,9 +277,9 @@ python3 scripts/measure_v4.py --budget # RAM/flash gates
 
 | Suite | Tests | Description |
 |---|---|---|
-| `test_v4.c` | 13 | Core behaviour + the corpus (60 encode + 101 decode cases) |
-| `test_v4_ring.c` | 5 | Ring helper |
-| `test_v4_rel.c` | 24 | Profile R1 state machines + traces T1–T9 |
+| `test_v4.c` | 15 | Core behaviour + the corpus (60 encode + 101 decode cases) |
+| `test_v4_ring.c` | 6 | Ring helper |
+| `test_v4_rel.c` | 26 | Profile R1 state machines + traces T1–T9 |
 
 Additional checks run by CI:
 
@@ -262,6 +293,9 @@ Additional checks run by CI:
   bursts. Results in [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 - **Memory footprint**: budget gate + README table check (`scripts/measure_v4.py`).
 - **Examples**: `avr-gcc` compile + host self-test.
+- **Python reference guards**: `scripts/llp_v4.py --self-test` and
+  `scripts/llp_v4_rel.py --self-test` pin the init clamps that the C suite pins
+  too, so the reference cannot drift from the headers.
 
 ## Project Structure
 

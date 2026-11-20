@@ -21,7 +21,7 @@ llp-protocol/
 │   └── main.cpp                    # PlatformIO entry for the cross envs
 │
 ├── test/
-│   ├── test_main.c                 # Unity runner: registers the 42 cases
+│   ├── test_main.c                 # Unity runner: registers the 47 cases
 │   ├── test_v4.c                   # core behaviour + the two corpus tables
 │   ├── test_v4_ring.c              # ring helper
 │   ├── test_v4_rel.c               # Profile R1 state machines + traces T1–T9
@@ -94,10 +94,10 @@ llp-protocol/
 
 | Suite | Cases | Focus |
 |---|---:|---|
-| `test/test_v4.c` | 13 | Core behaviour + 60 encode and 101 decode corpus rows |
-| `test/test_v4_ring.c` | 5 | Ring helper |
-| `test/test_v4_rel.c` | 24 | Profile R1 state machines + traces T1–T9 |
-| **Total** | **42** | `grep -c 'RUN_TEST(' test/test_main.c` |
+| `test/test_v4.c` | 15 | Core behaviour + 60 encode and 101 decode corpus rows |
+| `test/test_v4_ring.c` | 6 | Ring helper |
+| `test/test_v4_rel.c` | 26 | Profile R1 state machines + traces T1–T9 |
+| **Total** | **47** | `grep -c 'RUN_TEST(' test/test_main.c` |
 
 Counts and how to derive them: [`TESTING.md`](TESTING.md) and
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md).

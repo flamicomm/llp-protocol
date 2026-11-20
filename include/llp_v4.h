@@ -32,13 +32,19 @@ extern "C" {
 /* ------------------------------------------------------------------------- */
 
 /**
- * Default inter-byte timeout in milliseconds (max 32767). The comparison is
- * strictly greater-than, so a timeout of 0 means "any inter-byte gap times
- * out": always pass a real value.
+ * Default inter-byte timeout in milliseconds. `llp4_parser_init()` uses it when
+ * the requested timeout is 0 (which would make every inter-byte gap time out).
  */
 #ifndef LLP4_DEFAULT_TIMEOUT_MS
 #define LLP4_DEFAULT_TIMEOUT_MS 2000
 #endif
+
+/**
+ * Maximum inter-byte timeout: half of the 16-bit millisecond range, so the
+ * wrap-safe subtraction cannot confuse a long gap with a wrapped short one
+ * (SPEC-v4 §8). `llp4_parser_init()` clamps larger values to this.
+ */
+#define LLP4_TIMEOUT_MAX_MS 32767u
 
 /** Enable parser statistics (+6 bytes on 16-bit platforms). */
 #ifndef LLP4_ENABLE_STATS
@@ -188,14 +194,29 @@ static inline void llp4_parser_reset(llp4_parser_t *p)
 /**
  * Configure a parser.
  *
+ * Contract guards (CNC-030 L-M3), all of them constant-time and init-only:
+ *   - `buf == NULL` forces `cap = 0`, so a frame with `LEN > 0` is rejected
+ *     with `LLP4_ERR_LEN` before any byte is stored (nothing is ever written
+ *     through the null pointer). Only empty payloads are delivered.
+ *   - `timeout_ms == 0` becomes `LLP4_DEFAULT_TIMEOUT_MS`; values above
+ *     `LLP4_TIMEOUT_MAX_MS` (32767) are clamped to it, because the 16-bit
+ *     wrap-safe comparison cannot represent a longer gap (SPEC-v4 §8).
+ *
  * @param buf        payload storage owned by the caller (or NULL when cap == 0)
  * @param cap        payload capacity, 0..255
- * @param timeout_ms inter-byte timeout, 1..32767 (0 disables via immediate
- *                   comparison semantics; use LLP4_DEFAULT_TIMEOUT_MS)
+ * @param timeout_ms inter-byte timeout, 1..32767 (0 selects the default)
  */
 static inline void llp4_parser_init(llp4_parser_t *p, uint8_t *buf, uint8_t cap,
                                     uint16_t timeout_ms)
 {
+    if (buf == NULL) {
+        cap = 0;
+    }
+    if (timeout_ms == 0u) {
+        timeout_ms = (uint16_t)LLP4_DEFAULT_TIMEOUT_MS;
+    } else if (timeout_ms > (uint16_t)LLP4_TIMEOUT_MAX_MS) {
+        timeout_ms = (uint16_t)LLP4_TIMEOUT_MAX_MS;
+    }
     p->payload = buf;
     p->capacity = cap;
     p->timeout_ms = timeout_ms;

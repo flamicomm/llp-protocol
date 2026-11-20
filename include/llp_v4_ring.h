@@ -10,12 +10,17 @@
  *   - indices are 8-bit, so the ring holds at most 254 bytes and every read
  *     of a shared index is atomic on an 8-bit MCU;
  *   - the two contexts must not call push()/pop() concurrently with each
- *     other's role (that is what SPSC means).
+ *     other's role (that is what SPSC means);
+ *   - an invalid configuration (`buf == NULL`, or `size < 2` because one slot
+ *     is reserved to tell full from empty) disables the ring: it reports a
+ *     capacity of 0 and every push/pop is a no-op instead of writing through a
+ *     null or undersized buffer.
  */
 
 #ifndef LLP_V4_RING_H
 #define LLP_V4_RING_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -24,14 +29,23 @@ extern "C" {
 
 typedef struct {
     uint8_t *buf;          /**< caller-owned storage, `size` bytes */
-    uint8_t size;          /**< total slots, 2..255 (capacity = size - 1) */
+    uint8_t size;          /**< total slots, 2..255 (capacity = size - 1);
+                               0 = disabled ring */
     volatile uint8_t head; /**< written by the producer */
     volatile uint8_t tail; /**< written by the consumer */
 } llp4_ring_t;
 
-/** Configure a ring. `size` must be >= 2 and <= 255. */
+/**
+ * Configure a ring. `size` must be >= 2 and <= 255; `buf` must have `size`
+ * bytes. Invalid arguments (NULL buffer, size < 2) leave the ring disabled
+ * (capacity 0) rather than accepting stores the caller cannot honour.
+ */
 static inline void llp4_ring_init(llp4_ring_t *r, uint8_t *buf, uint8_t size)
 {
+    if ((buf == NULL) || (size < 2u)) {
+        buf = NULL;
+        size = 0u;
+    }
     r->buf = buf;
     r->size = size;
     r->head = 0;
@@ -41,7 +55,7 @@ static inline void llp4_ring_init(llp4_ring_t *r, uint8_t *buf, uint8_t size)
 /** Usable capacity (one slot is reserved to tell full from empty). */
 static inline uint8_t llp4_ring_capacity(const llp4_ring_t *r)
 {
-    return (uint8_t)(r->size - 1u);
+    return (r->size < 2u) ? 0u : (uint8_t)(r->size - 1u);
 }
 
 /** Bytes currently stored. Conservative if the other context is active. */
@@ -61,10 +75,15 @@ static inline uint8_t llp4_ring_free(const llp4_ring_t *r)
     return (uint8_t)(llp4_ring_capacity(r) - llp4_ring_count(r));
 }
 
-/** Push one byte. Returns 1 on success, 0 when full. */
+/** Push one byte. Returns 1 on success, 0 when full (or ring disabled). */
 static inline int llp4_ring_push(llp4_ring_t *r, uint8_t byte)
 {
-    uint8_t next = (uint8_t)(r->head + 1u);
+    uint8_t next;
+
+    if (r->size < 2u) {
+        return 0;
+    }
+    next = (uint8_t)(r->head + 1u);
     if (next == r->size) {
         next = 0;
     }
@@ -76,7 +95,13 @@ static inline int llp4_ring_push(llp4_ring_t *r, uint8_t byte)
     return 1;
 }
 
-/** Pop one byte. Returns 1 on success, 0 when empty. */
+/**
+ * Pop one byte. Returns 1 on success, 0 when empty.
+ *
+ * Safe on a disabled ring (`size == 0`) without an extra branch: init leaves
+ * `head == tail == 0` and push refuses to advance them, so the empty check
+ * below returns 0 before `r->buf` (NULL) is ever dereferenced.
+ */
 static inline int llp4_ring_pop(llp4_ring_t *r, uint8_t *byte)
 {
     uint8_t tail = r->tail;

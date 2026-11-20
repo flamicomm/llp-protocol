@@ -13,6 +13,8 @@ máquinas de estado: `README.md` y `docs/`.
 pio test -e test                              # suite Unity en el host (env nativo)
 sh scripts/sync_corpus.sh                     # re-vendoriza el corpus de ../llp-spec y regenera el fixture
 python3 scripts/check_corpus.py               # manifest + pin del fixture + regeneración byte a byte
+python3 scripts/llp_v4.py --self-test         # guards de init de la referencia Python (wire)
+python3 scripts/llp_v4_rel.py --self-test     # guards de init de la referencia Python (R1)
 sh scripts/check_robustness.sh                # fuzzer + canal con ruido
 sh scripts/check_examples.sh                  # compila y corre los ejemplos
 python3 scripts/measure_v4.py --budget        # presupuesto de RAM/flash
@@ -32,6 +34,18 @@ imprime `scripts/measure_v4.py`; no los cites de memoria.
   sin buffer de trama.
 - **Tiempo inyectado** (`now_ms`): el parser nunca lee un reloj. Aritmética
   wrap-safe a 16 bits; el timeout no supera el máximo representable.
+- **La capacidad v4 es runtime, no de compilación**: `llp4_parser_init()` recibe
+  `uint8_t cap` y el buffer del llamador; no hay flags de tamaño, timeout ni
+  stats v3 (`LLP_MAX_PAYLOAD`, `LLP_FRAME_TIMEOUT_MS`, `LLP_ENABLE_STATS`) en
+  `platformio.ini`. Los únicos macros de compilación son los `LLP4_*`
+  (`LLP4_ENABLE_STATS`, `LLP4_CRC_TABLE`, `LLP4_DEFAULT_TIMEOUT_MS`).
+- **Contratos de API con guard de costo cero** (solo en `*_init`):
+  `llp4_parser_init()` fuerza `cap = 0` si el buffer es `NULL` (una trama con
+  LEN>0 se rechaza con `LLP4_ERR_LEN`, nunca se escribe por el puntero nulo) y
+  acota el timeout a `1..32767`; `llp4_ring_init()` deshabilita el ring
+  (`capacity == 0`, push/pop no-op) si `buf == NULL` o `size < 2`; el sender R1
+  acota `max_retries` al rango normativo 1–10 y los timers a 32767. El path
+  caliente (un byte por `feed`) no paga ninguna comparación extra.
 - **Errores son eventos**, no estados fatales: tras `LLP4_ERR_*` el parser queda
   listo para la próxima trama.
 - **Presupuesto de memoria**: `measure_v4.py --budget` es el gate de CI y

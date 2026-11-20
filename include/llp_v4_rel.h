@@ -62,6 +62,14 @@ extern "C" {
 #define LLP4_REL_DEFAULT_MAX_RETRIES 5u
 #define LLP4_REL_DEFAULT_BACKOFF_MS 1000u
 
+/** Normative range of MAX_RETRIES (RELIABILITY.md §5.4): 1..10. */
+#define LLP4_REL_MIN_RETRIES 1u
+#define LLP4_REL_MAX_RETRIES 10u
+
+/** Maximum timer value: half of the 16-bit range, so the wrap-safe comparison
+ * stays unambiguous (same rule as LLP4_TIMEOUT_MAX_MS in llp_v4.h). */
+#define LLP4_REL_MAX_TIMER_MS 32767u
+
 /* ------------------------------------------------------------------------- */
 /* Sender                                                                    */
 /* ------------------------------------------------------------------------- */
@@ -84,6 +92,45 @@ typedef struct {
     uint8_t max_retries;                   /**< fast retransmissions allowed    */
 } llp4_rel_tx_t;
 
+/**
+ * Clamp a timer to the range the 16-bit wrap-safe arithmetic supports.
+ * `0` selects `fallback` (a zero timer would fire on every poll).
+ */
+static inline uint16_t llp4_rel_clamp_timer(uint16_t timer_ms,
+                                            uint16_t fallback_ms)
+{
+    if (timer_ms == 0u) {
+        return fallback_ms;
+    }
+    if (timer_ms > (uint16_t)LLP4_REL_MAX_TIMER_MS) {
+        return (uint16_t)LLP4_REL_MAX_TIMER_MS;
+    }
+    return timer_ms;
+}
+
+/** Clamp MAX_RETRIES into the normative range 1..10 (RELIABILITY.md §5.4). */
+static inline uint8_t llp4_rel_clamp_retries(uint8_t max_retries)
+{
+    if (max_retries < (uint8_t)LLP4_REL_MIN_RETRIES) {
+        return (uint8_t)LLP4_REL_MIN_RETRIES;
+    }
+    if (max_retries > (uint8_t)LLP4_REL_MAX_RETRIES) {
+        return (uint8_t)LLP4_REL_MAX_RETRIES;
+    }
+    return max_retries;
+}
+
+/**
+ * Configure the sender.
+ *
+ * Out-of-contract configuration is clamped here, once, instead of silently
+ * changing behaviour later (CNC-030 L-M3):
+ *   - `max_retries` is clamped to the normative range 1..10. `0` would mean
+ *     "exhaust after zero retransmissions", which the profile does not allow;
+ *   - `timeout_ms` and `backoff_ms` of `0` select their defaults; values above
+ *     32767 are clamped, because the wrap-safe comparison cannot represent
+ *     them (a 65535 ms timer would never elapse).
+ */
 static inline void llp4_rel_tx_init(llp4_rel_tx_t *tx, uint16_t timeout_ms,
                                     uint8_t max_retries, uint16_t backoff_ms)
 {
@@ -93,9 +140,11 @@ static inline void llp4_rel_tx_init(llp4_rel_tx_t *tx, uint16_t timeout_ms,
     tx->exhausted = 0;
     tx->retries = 0;
     tx->sent_ms = 0;
-    tx->timeout_ms = (timeout_ms != 0) ? timeout_ms : LLP4_REL_DEFAULT_ACK_TIMEOUT_MS;
-    tx->backoff_ms = (backoff_ms != 0) ? backoff_ms : LLP4_REL_DEFAULT_BACKOFF_MS;
-    tx->max_retries = max_retries;
+    tx->timeout_ms = llp4_rel_clamp_timer(timeout_ms,
+                                          LLP4_REL_DEFAULT_ACK_TIMEOUT_MS);
+    tx->backoff_ms = llp4_rel_clamp_timer(backoff_ms,
+                                          LLP4_REL_DEFAULT_BACKOFF_MS);
+    tx->max_retries = llp4_rel_clamp_retries(max_retries);
 }
 
 /**
@@ -188,6 +237,27 @@ static inline int llp4_rel_tx_on_ack(llp4_rel_tx_t *tx, uint8_t seq)
     tx->active = 0;
     tx->exhausted = 0;
     return 1;
+}
+
+/**
+ * Feed an ACK *frame*: applies the two checks of RELIABILITY.md §3 before
+ * touching the window — the frame must be on `LLP4_REL_CH_ACK` and must carry
+ * exactly one byte. An ACK frame whose length is not 1 MUST be ignored, and
+ * this helper is where that rule lives so no caller has to restate it.
+ *
+ * Returns 1 when the ACK was valid and acknowledged the outstanding frame, 0
+ * for a malformed/foreign frame or a stale sequence number (window unchanged).
+ * A caller that already dispatched on channel and length may keep calling
+ * `llp4_rel_tx_on_ack()` directly.
+ */
+static inline int llp4_rel_tx_on_ack_frame(llp4_rel_tx_t *tx, uint8_t channel,
+                                           const uint8_t *payload, uint8_t len)
+{
+    if ((channel != (uint8_t)LLP4_REL_CH_ACK) || (len != 1u) ||
+        (payload == NULL)) {
+        return 0;
+    }
+    return llp4_rel_tx_on_ack(tx, payload[0]);
 }
 
 /** Release the window without a delivery (application abort). */

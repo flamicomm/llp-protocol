@@ -14,6 +14,8 @@ void test_v4_encode_rejects_small_buffer(void);
 void test_v4_encode_empty_payload(void);
 void test_v4_encoder_stuffs_everything_but_magic(void);
 void test_v4_zero_capacity_accepts_only_empty_payload(void);
+void test_v4_parser_init_null_buffer_forces_zero_capacity(void);
+void test_v4_parser_init_clamps_timeout(void);
 void test_v4_capacity_error_before_payload(void);
 void test_v4_bad_crc_is_not_delivered_then_recovers(void);
 void test_v4_timeout_wraps_at_16_bits(void);
@@ -24,16 +26,19 @@ void test_v4_ring_push_pop(void);
 void test_v4_ring_fills_to_capacity(void);
 void test_v4_ring_wraps_indices(void);
 void test_v4_ring_smallest_size(void);
+void test_v4_ring_invalid_init_disables_ring(void);
 
 /* Profile R1 (include/llp_v4_rel.h) — see llp-spec docs/RELIABILITY.md */
 void test_rel_tx_starts_idle(void);
 void test_rel_tx_defaults(void);
+void test_rel_tx_init_clamps_config(void);
 void test_rel_tx_start_builds_payload(void);
 void test_rel_tx_start_rejects_busy_window(void);
 void test_rel_tx_start_rejects_oversized_data(void);
 void test_rel_tx_retransmits_identical_payload_after_timeout(void);
 void test_rel_tx_exhausts_and_backs_off(void);
 void test_rel_tx_ack_releases_window(void);
+void test_rel_tx_on_ack_frame_requires_single_byte(void);
 void test_rel_tx_abort_releases_window(void);
 void test_rel_tx_time_wraps_at_16_bits(void);
 void test_rel_rx_first_frame_and_duplicate(void);
@@ -68,6 +73,8 @@ int main(void)
     RUN_TEST(test_v4_encode_empty_payload);
     RUN_TEST(test_v4_encoder_stuffs_everything_but_magic);
     RUN_TEST(test_v4_zero_capacity_accepts_only_empty_payload);
+    RUN_TEST(test_v4_parser_init_null_buffer_forces_zero_capacity);
+    RUN_TEST(test_v4_parser_init_clamps_timeout);
     RUN_TEST(test_v4_capacity_error_before_payload);
     RUN_TEST(test_v4_bad_crc_is_not_delivered_then_recovers);
     RUN_TEST(test_v4_timeout_wraps_at_16_bits);
@@ -78,16 +85,19 @@ int main(void)
     RUN_TEST(test_v4_ring_fills_to_capacity);
     RUN_TEST(test_v4_ring_wraps_indices);
     RUN_TEST(test_v4_ring_smallest_size);
+    RUN_TEST(test_v4_ring_invalid_init_disables_ring);
 
     /* Profile R1: reliable command channel */
     RUN_TEST(test_rel_tx_starts_idle);
     RUN_TEST(test_rel_tx_defaults);
+    RUN_TEST(test_rel_tx_init_clamps_config);
     RUN_TEST(test_rel_tx_start_builds_payload);
     RUN_TEST(test_rel_tx_start_rejects_busy_window);
     RUN_TEST(test_rel_tx_start_rejects_oversized_data);
     RUN_TEST(test_rel_tx_retransmits_identical_payload_after_timeout);
     RUN_TEST(test_rel_tx_exhausts_and_backs_off);
     RUN_TEST(test_rel_tx_ack_releases_window);
+    RUN_TEST(test_rel_tx_on_ack_frame_requires_single_byte);
     RUN_TEST(test_rel_tx_abort_releases_window);
     RUN_TEST(test_rel_tx_time_wraps_at_16_bits);
     RUN_TEST(test_rel_rx_first_frame_and_duplicate);

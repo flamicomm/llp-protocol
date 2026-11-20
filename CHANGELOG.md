@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `scripts/llp_v4.py --self-test` and `scripts/llp_v4_rel.py --self-test`: pin
+  the init guards of the Python reference (timeout clamp, `max_retries` clamp,
+  R1 timer clamps) so it cannot drift from the C headers. CI runs both.
+- `llp4_rel_tx_on_ack_frame()` (`llp_v4_rel.h`): applies the §3 MUST "ignore an
+  ACK frame whose length is not 1" (plus the channel-2 check) before releasing
+  the window, so the rule no longer lives only in the caller's dispatch.
 - `scripts/sync_corpus.sh` and `scripts/check_corpus.py`: the conformance corpus
   is vendored from `llp-spec` (`spec/vectors/v4/*.json` plus its
   `MANIFEST.sha256`) and the emitted fixture is pinned by `FIXTURE.sha256`.
@@ -27,6 +33,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (traces T1–T8).
 
 ### Changed
+- API contract guards, init-only and constant-time (CNC-030 L-M3):
+  `llp4_parser_init()` forces `cap = 0` when the buffer is `NULL` (a frame with
+  `LEN > 0` is rejected with `LLP4_ERR_LEN` instead of storing through the null
+  pointer) and clamps the inter-byte timeout (`0` → default, `> 32767` →
+  `LLP4_TIMEOUT_MAX_MS`); `llp4_ring_init()` disables the ring on
+  `buf == NULL` or `size < 2` (capacity 0, push/pop no-ops) instead of wrapping
+  `size - 1` to 255 and writing out of bounds; `llp4_rel_tx_init()` clamps
+  `max_retries` to the normative 1–10 (a `0` used to exhaust with zero
+  retransmissions) and the R1 timers to 32767. Hot paths unchanged.
+- `platformio.ini`: dropped the dead v3 flags (`LLP_MAX_PAYLOAD`,
+  `LLP_FRAME_TIMEOUT_MS`, `LLP_ENABLE_STATS`) from every environment; only the
+  real `LLP4_*` switches remain. The v4 payload capacity is a runtime
+  `uint8_t cap`, not a compile-time size.
+- `scripts/llp_v4.py` / `scripts/llp_v4_rel.py`: the Python reference applies the
+  same clamps as the C headers (`clamp_timeout()`, `_clamp_retries()`,
+  `_clamp_timer()`), so both languages answer the same for `timeout_ms = 0`,
+  `timeout_ms > 32767`, `max_retries = 0` and `max_retries > 10`. The wire is
+  unchanged: the corpus and the emitted fixture are byte-identical.
 - The Unity suite now walks the canonical corpus of `llp-spec` instead of a local
   29-case set: 60 encode and 101 decode rows (161 of the 170 cases; the nine
   `rel-*` wire cases are not emitted by `--emit-c` yet, tracked as **L-I1b** in
@@ -34,8 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fails loudly. See `docs/CONFORMANCE.md`.
 - `docs/RELIABILITY.md`: `llp4_rel_tx_t` is 76 B on AVR (78 B on a 64-bit host,
   where `uint16_t` is aligned); `scripts/measure_v4.py` gates the AVR figure.
-- `README.md`, `TESTING.md` and `STRUCTURE.md` rebuilt on v4 numbers: 42 test
-  cases (13 + 5 + 24) and counts derivable from a command instead of the stale
+- `README.md`, `TESTING.md` and `STRUCTURE.md` rebuilt on v4 numbers: 47 test
+  cases (15 + 6 + 26) and counts derivable from a command instead of the stale
   v3.1.0 "90 tests" table.
 
 ### Removed

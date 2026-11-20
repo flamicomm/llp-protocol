@@ -92,3 +92,30 @@ void test_v4_ring_smallest_size(void)
     TEST_ASSERT_EQUAL_HEX8(0x11, byte);
     TEST_ASSERT_EQUAL_INT(0, llp4_ring_pop(&ring, &byte));
 }
+
+/* Registry: llp4_ring_init(&r, NULL, n) crashed on the first push, and
+ * size < 2 made `size - 1` wrap to a bogus capacity (size 0 reported 255).
+ * An invalid configuration now disables the ring instead. */
+void test_v4_ring_invalid_init_disables_ring(void)
+{
+    uint8_t storage[4];
+    uint8_t byte = 0;
+
+    llp4_ring_init(&ring, NULL, sizeof(storage));
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_capacity(&ring));
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_count(&ring));
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_free(&ring));
+    TEST_ASSERT_EQUAL_INT(0, llp4_ring_push(&ring, 0x42));
+    TEST_ASSERT_EQUAL_INT(0, llp4_ring_pop(&ring, &byte));
+
+    llp4_ring_init(&ring, storage, 0); /* used to report capacity 255 */
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_capacity(&ring));
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_free(&ring));
+    TEST_ASSERT_EQUAL_INT(0, llp4_ring_push(&ring, 0x42));
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_count(&ring));
+
+    llp4_ring_init(&ring, storage, 1); /* one slot is reserved for full/empty */
+    TEST_ASSERT_EQUAL_UINT8(0, llp4_ring_capacity(&ring));
+    TEST_ASSERT_EQUAL_INT(0, llp4_ring_push(&ring, 0x42));
+    TEST_ASSERT_EQUAL_INT(0, llp4_ring_pop(&ring, &byte));
+}
