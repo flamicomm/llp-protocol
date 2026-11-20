@@ -106,6 +106,29 @@ Base conformance does not require R1 (`llp-spec/docs/CONFORMANCE.md`, "Profile R
 (optional)"), so an implementation that stops at the 161 emitted cases is
 conformant with the wire. This library claims R1 as well, hence the tests above.
 
+## Reference implementation parity (`scripts/llp_v4.py`, `scripts/llp_v4_rel.py`)
+
+The corpus proves the **wire**; it says nothing about the guards of the API,
+because every vector uses valid input. Those guards are pinned twice, once per
+language, and both copies are the same contract:
+
+| Guard | C (`include/`) | Python (`scripts/`) |
+|---|---|---|
+| inter-byte timeout | `llp4_parser_init()`: `0 → LLP4_DEFAULT_TIMEOUT_MS`, `> 32767 → LLP4_TIMEOUT_MAX_MS` | `Parser(timeout_ms=...)` → `clamp_timeout()` |
+| R1 `max_retries` | `llp4_rel_tx_init()`: clamped to `1..10` | `Sender(max_retries=...)` → `_clamp_retries()` |
+| R1 timers | `llp4_rel_tx_init()`: `0 → default`, `> 32767 → LLP4_REL_MAX_TIMER_MS` | `Sender(...)` → `_clamp_timer()` |
+
+C pins them in `test/test_v4.c` / `test/test_v4_rel.c`; Python in
+`python3 scripts/llp_v4.py --self-test` and
+`python3 scripts/llp_v4_rel.py --self-test` (both run in CI). A change to one
+side without the other is a bug: the reference is the executable form of the
+norm and the C header is what the firmwares vendor.
+
+`llp-spec/reference/llp_v4.py` and `llp-spec/reference/llp_v4_rel.py` are
+**copies** of these two files, pinned by `llp-spec/reference/VENDOR.md`. They
+lag behind until that repository re-vendors and re-pins the sha256; the drift is
+a warning there (`tools/check_vendor.py`), never an edit here.
+
 ## When a case fails
 
 1. **Do not edit the vector.** Vectors are the contract and are generated in

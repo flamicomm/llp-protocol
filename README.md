@@ -205,6 +205,12 @@ speed. The v3 flags `LLP_MAX_PAYLOAD`, `LLP_FRAME_TIMEOUT_MS` and
 `LLP_ENABLE_STATS` were removed from `platformio.ini`: the v4 headers never read
 them.
 
+The Python reference applies the same init guards, so a test that passes on the
+host means the same thing in `scripts/llp_v4.py` / `scripts/llp_v4_rel.py`:
+`Parser(timeout_ms=...)` clamps like `llp4_parser_init()` and `Sender(...)`
+clamps `max_retries` like `llp4_rel_tx_init()`. Both files have a `--self-test`
+that pins it.
+
 ## Memory Footprint
 
 <!-- LLP4-SIZE-TABLE:BEGIN -->
@@ -262,6 +268,8 @@ Integration guide (context rules, sizing, RS-485, text-over-LLP):
 ```bash
 pio test -e test                       # 47 Unity tests (core + corpus + ring + R1)
 python3 scripts/check_corpus.py        # canonical corpus + fixture pin
+python3 scripts/llp_v4.py --self-test      # Python reference: init guards
+python3 scripts/llp_v4_rel.py --self-test  # Python reference: R1 guards
 sh scripts/check_robustness.sh         # property fuzzer + noise channel
 sh scripts/check_examples.sh           # builds/runs the examples
 python3 scripts/measure_v4.py --budget # RAM/flash gates
@@ -285,6 +293,9 @@ Additional checks run by CI:
   bursts. Results in [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 - **Memory footprint**: budget gate + README table check (`scripts/measure_v4.py`).
 - **Examples**: `avr-gcc` compile + host self-test.
+- **Python reference guards**: `scripts/llp_v4.py --self-test` and
+  `scripts/llp_v4_rel.py --self-test` pin the init clamps that the C suite pins
+  too, so the reference cannot drift from the headers.
 
 ## Project Structure
 

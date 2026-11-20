@@ -13,6 +13,8 @@ máquinas de estado: `README.md` y `docs/`.
 pio test -e test                              # suite Unity en el host (env nativo)
 sh scripts/sync_corpus.sh                     # re-vendoriza el corpus de ../llp-spec y regenera el fixture
 python3 scripts/check_corpus.py               # manifest + pin del fixture + regeneración byte a byte
+python3 scripts/llp_v4.py --self-test         # guards de init de la referencia Python (wire)
+python3 scripts/llp_v4_rel.py --self-test     # guards de init de la referencia Python (R1)
 sh scripts/check_robustness.sh                # fuzzer + canal con ruido
 sh scripts/check_examples.sh                  # compila y corre los ejemplos
 python3 scripts/measure_v4.py --budget        # presupuesto de RAM/flash

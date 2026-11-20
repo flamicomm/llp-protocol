@@ -52,6 +52,13 @@ jobs:
       - name: Robustness (property fuzzer + noise channel)
         run: sh scripts/check_robustness.sh
 
+      - name: Python reference guards
+        # The reference is the executable form of the norm: its init clamps must
+        # match include/llp_v4.h and include/llp_v4_rel.h (CNC-030 L-M3).
+        run: |
+          python3 scripts/llp_v4.py --self-test
+          python3 scripts/llp_v4_rel.py --self-test
+
       - name: Install lcov
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lcov
 

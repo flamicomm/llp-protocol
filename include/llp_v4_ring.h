@@ -95,7 +95,13 @@ static inline int llp4_ring_push(llp4_ring_t *r, uint8_t byte)
     return 1;
 }
 
-/** Pop one byte. Returns 1 on success, 0 when empty. */
+/**
+ * Pop one byte. Returns 1 on success, 0 when empty.
+ *
+ * Safe on a disabled ring (`size == 0`) without an extra branch: init leaves
+ * `head == tail == 0` and push refuses to advance them, so the empty check
+ * below returns 0 before `r->buf` (NULL) is ever dereferenced.
+ */
 static inline int llp4_ring_pop(llp4_ring_t *r, uint8_t *byte)
 {
     uint8_t tail = r->tail;

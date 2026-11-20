@@ -17,7 +17,13 @@ Wire format 4.0.0:
   - Stuffing: every 0xAA after the magic is sent as 0xAA 0x00
 
 Time is caller-supplied and reduced modulo 65536 (the C parser stores a
-16-bit timestamp). Timeouts are wrap-safe and must be <= 32767 ms.
+16-bit timestamp). Timeouts are wrap-safe: ``Parser`` clamps the value exactly
+like ``llp4_parser_init()`` in ``include/llp_v4.h`` — ``0`` selects
+``DEFAULT_TIMEOUT_MS`` and anything above ``TIMEOUT_MAX_MS`` is clamped to it,
+because a longer gap cannot be represented by the 16-bit comparison.
+
+Run ``python3 scripts/llp_v4.py --self-test`` to check the guards against the C
+contract.
 """
 
 from __future__ import annotations
@@ -28,6 +34,7 @@ MAGIC2 = 0x55
 CRC_INIT = 0xFFFF
 MAX_PAYLOAD = 255
 DEFAULT_TIMEOUT_MS = 2000
+TIMEOUT_MAX_MS = 32767  # LLP4_TIMEOUT_MAX_MS in include/llp_v4.h
 
 # Parser states
 WAIT_MAGIC1, WAIT_MAGIC2, READ_LEN, READ_CHANNEL, READ_PAYLOAD, READ_CRC_L, READ_CRC_H = range(7)
@@ -94,6 +101,22 @@ def frame_size(payload_len: int) -> int:
 # --------------------------------------------------------------------------
 # Decoder
 # --------------------------------------------------------------------------
+def clamp_timeout(timeout_ms: int) -> int:
+    """Clamp an inter-byte timeout the way ``llp4_parser_init()`` does.
+
+    ``0`` (or a negative value, which the C ``uint16_t`` parameter cannot
+    express) selects :data:`DEFAULT_TIMEOUT_MS`, because a zero timeout would
+    fire on every inter-byte gap. Values above :data:`TIMEOUT_MAX_MS` are
+    clamped: the wrap-safe 16-bit comparison cannot reach them, so a longer
+    timeout would never elapse.
+    """
+    if timeout_ms <= 0:
+        return DEFAULT_TIMEOUT_MS
+    if timeout_ms > TIMEOUT_MAX_MS:
+        return TIMEOUT_MAX_MS
+    return timeout_ms
+
+
 class Parser:
     """Byte-at-a-time parser. Events are returned in detection order."""
 
@@ -101,7 +124,7 @@ class Parser:
         if not 0 <= capacity <= MAX_PAYLOAD:
             raise ValueError("capacity out of range 0..255")
         self.capacity = capacity
-        self.timeout_ms = timeout_ms
+        self.timeout_ms = clamp_timeout(timeout_ms)
         self.reset()
 
     def reset(self) -> None:
@@ -222,8 +245,47 @@ class Parser:
 # --------------------------------------------------------------------------
 # Tiny CLI for manual checks: echo "aa55..." | python3 llp_v4.py
 # --------------------------------------------------------------------------
+def _self_test() -> int:
+    """Pin the API guards so this reference cannot drift from the C header."""
+    results: list[tuple[str, bool]] = []
+
+    def check(name: str, ok: bool) -> None:
+        results.append((name, ok))
+        print(f"{'ok  ' if ok else 'FAIL'} {name}")
+
+    # init guards (mirror of test_v4_parser_init_clamps_timeout in the C suite)
+    check("timeout_ms = 0 selects DEFAULT_TIMEOUT_MS",
+          Parser(timeout_ms=0).timeout_ms == DEFAULT_TIMEOUT_MS)
+    check("timeout_ms = 60000 is clamped to TIMEOUT_MAX_MS",
+          Parser(timeout_ms=60000).timeout_ms == TIMEOUT_MAX_MS)
+    check("timeout_ms = 1 is kept", Parser(timeout_ms=1).timeout_ms == 1)
+    check("timeout_ms = 32767 is kept", Parser(timeout_ms=32767).timeout_ms == 32767)
+    check("timeout_ms = 32768 is clamped",
+          Parser(timeout_ms=32768).timeout_ms == TIMEOUT_MAX_MS)
+
+    # Behavioural: the clamped default must let a slow frame through. Before
+    # the clamp, timeout_ms = 0 killed the frame on the second byte.
+    frame = encode(0, b"ok\n")
+    parser = Parser(timeout_ms=0)
+    events: list[tuple] = []
+    for index, byte in enumerate(frame):
+        events.extend(parser.feed(byte, index))  # 1 ms per byte
+    check("a 1 ms/byte frame survives the clamped timeout",
+          events == [("frame", 0, b"ok\n")])
+
+    failed = [name for name, ok in results if not ok]
+    if failed:
+        print(f"self-test FAILED: {len(failed)} of {len(results)} checks")
+        return 1
+    print(f"self-test OK: {len(results)} checks")
+    return 0
+
+
 def _main() -> int:
     import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-test":
+        return _self_test()
 
     if len(sys.argv) > 1 and sys.argv[1] == "encode":
         channel = int(sys.argv[2]) if len(sys.argv) > 2 else 0

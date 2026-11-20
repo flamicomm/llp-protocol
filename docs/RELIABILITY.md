@@ -104,6 +104,11 @@ path):
 | `timeout_ms == 0` / `backoff_ms == 0` | their defaults | a zero timer would fire on every poll |
 | timer `> 32767` | `LLP4_REL_MAX_TIMER_MS` (32767) | the 16-bit wrap-safe difference cannot reach a larger value, so a 65535 ms timer would never elapse |
 
+The Python counterpart (`scripts/llp_v4_rel.py`, `Sender.__post_init__`) applies
+the same three clamps with the same constants, and
+`python3 scripts/llp_v4_rel.py --self-test` pins them; `llp-spec/reference/` is a
+pinned copy of that file and re-vendors after a change here.
+
 ## Receiver recipe
 
 ```c
