@@ -1,6 +1,8 @@
 #!/bin/sh
 # Robustness checks for the v4 core:
-#   1. property fuzzer (with ASan/UBSan when available), deterministic seeds;
+#   1. property fuzzer (with ASan/UBSan when available), deterministic seeds,
+#      once with the CRC table (default) and once with the bitwise CRC
+#      (LLP4_CRC_TABLE=0), so both implementations are executed;
 #   2. noise-channel report and its consistency with docs/ROBUSTNESS.md.
 #
 # Used by CI; also:
@@ -26,6 +28,19 @@ else
     cc -O2 -std=c99 -Wall -Wextra -I include tools/fuzz_v4.c -o "$OUT_DIR/fuzz_v4"
 fi
 "$OUT_DIR/fuzz_v4" "$FUZZ_SEED" "$FUZZ_ITERS"
+
+echo "== property fuzzer (bitwise CRC, LLP4_CRC_TABLE=0) =="
+FUZZ_ITERS_BITS=${FUZZ_ITERS_BITS:-20000}
+if cc -fsanitize=address,undefined -fno-sanitize-recover=all -O1 -g -std=c99 \
+      -Wall -Wextra -DLLP4_CRC_TABLE=0 -I include tools/fuzz_v4.c \
+      -o "$OUT_DIR/fuzz_v4_bits" 2>/dev/null; then
+    echo "(AddressSanitizer + UBSan enabled)"
+else
+    echo "(sanitizers unavailable: plain build)"
+    cc -O2 -std=c99 -Wall -Wextra -DLLP4_CRC_TABLE=0 -I include \
+        tools/fuzz_v4.c -o "$OUT_DIR/fuzz_v4_bits"
+fi
+"$OUT_DIR/fuzz_v4_bits" "$FUZZ_SEED" "$FUZZ_ITERS_BITS"
 
 echo "== noise channel =="
 cc -O2 -std=c99 -Wall -Wextra -I include tools/noise_report.c -o "$OUT_DIR/noise_report"

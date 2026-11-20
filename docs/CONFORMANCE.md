@@ -92,7 +92,9 @@ This repository does not hand-write them, and does not patch the fixture:
 
 - **Behaviour** is covered by [`../test/test_v4_rel.c`](../test/test_v4_rel.c):
   the nine conformance traces T1–T9 of `llp-spec/docs/RELIABILITY.md` §11 plus the
-  unit behaviour of both state machines.
+  unit behaviour of both state machines, including the exhaustion tick (exactly
+  one `EXHAUSTED` event per `BACKOFF_MS`, pinned in C as well as in `llp-spec`'s
+  Python self-test).
 - **Wire layout** of the profile payloads is covered indirectly: those payloads
   are ordinary channel 1/2 frames, and `test_v4_rel.c` round-trips them through
   `llp4_encode`/`llp4_parser_feed`.

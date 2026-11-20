@@ -8,7 +8,7 @@ conformance corpus and the checks that gate them.
 
 ```
 llp-protocol/
-├── platformio.ini                  # native test env + cross-compile envs
+├── platformio.ini                  # native test envs (table + bitwise CRC) + cross-compile envs
 ├── library.properties              # Arduino Library Manager metadata
 │
 ├── include/
@@ -21,7 +21,7 @@ llp-protocol/
 │   └── main.cpp                    # PlatformIO entry for the cross envs
 │
 ├── test/
-│   ├── test_main.c                 # Unity runner: registers the 47 cases
+│   ├── test_main.c                 # Unity runner: registers the 50 cases
 │   ├── test_v4.c                   # core behaviour + the two corpus tables
 │   ├── test_v4_ring.c              # ring helper
 │   ├── test_v4_rel.c               # Profile R1 state machines + traces T1–T9
@@ -44,7 +44,7 @@ llp-protocol/
 │   └── llp_v4_rel.py               # Python counterpart of Profile R1
 │
 ├── tools/
-│   ├── fuzz_v4.c                   # property fuzzer (ASan + UBSan)
+│   ├── fuzz_v4.c                   # property fuzzer, wire + R1/ring (ASan + UBSan)
 │   └── noise_report.c              # noise matrix + false-accept measurement
 │
 ├── examples/
@@ -84,7 +84,7 @@ llp-protocol/
 | `scripts/sync_corpus.sh` | Single way to refresh the corpus and the fixture |
 | `scripts/check_corpus.py` | Offline pins + byte-for-byte regeneration when `../llp-spec` exists |
 | `scripts/measure_v4.py` | RAM/flash per target, hard budgets, README table sync |
-| `tools/fuzz_v4.c` | Property fuzzer, four distributions, five invariants |
+| `tools/fuzz_v4.c` | Property fuzzer: four distributions, five wire invariants, plus an R1/ring interleaving campaign |
 | `tools/noise_report.c` | Noise scenarios and the false-accept run behind `docs/ROBUSTNESS.md` |
 | `examples/v4/` | The two reference integrations built by `scripts/check_examples.sh` |
 | `examples/{minimal_uart,request_response,serial_echo}/` | v3.1.0 sketches kept for history; they include `llp_protocol.h` and are **not** built by the v4 checks |
@@ -94,10 +94,10 @@ llp-protocol/
 
 | Suite | Cases | Focus |
 |---|---:|---|
-| `test/test_v4.c` | 15 | Core behaviour + 60 encode and 101 decode corpus rows |
+| `test/test_v4.c` | 17 | Core behaviour + 60 encode and 101 decode corpus rows |
 | `test/test_v4_ring.c` | 6 | Ring helper |
-| `test/test_v4_rel.c` | 26 | Profile R1 state machines + traces T1–T9 |
-| **Total** | **47** | `grep -c 'RUN_TEST(' test/test_main.c` |
+| `test/test_v4_rel.c` | 27 | Profile R1 state machines + traces T1–T9 |
+| **Total** | **50** | `grep -c 'RUN_TEST(' test/test_main.c` |
 
 Counts and how to derive them: [`TESTING.md`](TESTING.md) and
 [`docs/CONFORMANCE.md`](docs/CONFORMANCE.md).
@@ -106,7 +106,7 @@ Counts and how to derive them: [`TESTING.md`](TESTING.md) and
 
 | Check | Command | Environment |
 |---|---|---|
-| Unit + corpus | `pio test -e test` | host (native, Unity) |
+| Unit + corpus | `pio test -e test` (table CRC) / `pio test -e test_bits` (bitwise CRC) | host (native, Unity) |
 | Corpus pins | `python3 scripts/check_corpus.py` | host, offline-safe |
 | Robustness | `sh scripts/check_robustness.sh` | host, ASan + UBSan |
 | Examples | `sh scripts/check_examples.sh` | `avr-gcc` + host |

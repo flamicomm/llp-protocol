@@ -65,6 +65,11 @@ jobs:
       - name: Run tests with coverage
         run: platformio test -e test -v
 
+      - name: Run the same suite with the bitwise CRC
+        # LLP4_CRC_TABLE=0 compiles the other half of llp4_crc16_update();
+        # the normative KAT ("123456789" -> 0x29B1) runs here too.
+        run: platformio test -e test_bits
+
       - name: Generate coverage report
         run: |
           mkdir -p coverage

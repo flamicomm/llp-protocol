@@ -195,6 +195,18 @@ void test_v4_crc_matches_bitwise_reference(void)
     TEST_ASSERT_EQUAL_HEX16(crc_bitwise, llp4_crc16(data, sizeof(data)));
 }
 
+/* KAT normativo (SPEC-v4 §4): CRC16-CCITT-FALSE over the check string
+ * "123456789" is 0x29B1. This anchors both CRC builds (`LLP4_CRC_TABLE` 1 and
+ * 0) to the polynomial of the norm, not just to each other. */
+void test_v4_crc_kat_check_string(void)
+{
+    static const uint8_t kat[] = "123456789";
+    const size_t len = sizeof(kat) - 1u;
+
+    TEST_ASSERT_EQUAL_UINT8(9, (uint8_t)len);
+    TEST_ASSERT_EQUAL_HEX16(0x29B1, llp4_crc16(kat, len));
+}
+
 void test_v4_crc_seed_covers_magic(void)
 {
     uint16_t expected = crc_ref(crc_ref(0xFFFFu, 0xAAu), 0x55u);
@@ -389,6 +401,58 @@ void test_v4_timeout_wraps_at_16_bits(void)
     for (i = 0; i < sizeof(frame); i++) {
         rc = llp4_parser_feed(&p, frame[i], now);
         now = (uint16_t)(now + 100u);
+    }
+    TEST_ASSERT_EQUAL_INT(LLP4_EV_FRAME, rc);
+    TEST_ASSERT_EQUAL_UINT8(3, p.length);
+}
+
+/* Registry (L-M4): a stray 0xAA followed by a gap is a half magic, and the
+ * inter-byte timeout applies to WAIT_MAGIC2 too. The offending byte is
+ * re-examined as a magic, so the link recovers on the next frame. */
+void test_v4_timeout_while_waiting_for_magic2(void)
+{
+    static const uint8_t good[] = {0xAA, 0x55, 0x03, 0x00,
+                                   0x6F, 0x6B, 0x0A, 0x08, 0xDB};
+    llp4_parser_t p;
+    uint8_t buf[8];
+    uint16_t now = 0;
+    size_t i;
+    int rc = LLP4_EV_NONE;
+
+    llp4_parser_init(&p, buf, sizeof(buf), 100);
+    TEST_ASSERT_EQUAL_INT(LLP4_EV_NONE, llp4_parser_feed(&p, 0xAA, now));
+    TEST_ASSERT_EQUAL_UINT8(LLP4_ST_WAIT_MAGIC2, p.state);
+
+    /* 101 ms later the half magic is stale: 0x55 is not a magic, so the
+     * timeout is reported and the parser returns to WAIT_MAGIC1. */
+    now = 101;
+    TEST_ASSERT_EQUAL_INT(-LLP4_ERR_TIMEOUT, llp4_parser_feed(&p, 0x55, now));
+    TEST_ASSERT_EQUAL_UINT8(LLP4_ERR_TIMEOUT, p.error);
+    TEST_ASSERT_EQUAL_UINT8(LLP4_ST_WAIT_MAGIC1, p.state);
+
+    /* Recovery: the next good frame is delivered at a normal cadence. */
+    for (i = 0; i < sizeof(good); i++) {
+        now = (uint16_t)(now + 1u);
+        rc = llp4_parser_feed(&p, good[i], now);
+        if (i + 1u < sizeof(good)) {
+            TEST_ASSERT_EQUAL_INT(LLP4_EV_NONE, rc);
+        }
+    }
+    TEST_ASSERT_EQUAL_INT(LLP4_EV_FRAME, rc);
+    TEST_ASSERT_EQUAL_UINT8(3, p.length);
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(good + 4, buf, 3);
+
+    /* A timing-out 0xAA is re-examined as a new magic instead of being
+     * discarded: the following 0x55 completes a fresh frame header. */
+    llp4_parser_init(&p, buf, sizeof(buf), 100);
+    TEST_ASSERT_EQUAL_INT(LLP4_EV_NONE, llp4_parser_feed(&p, 0xAA, 0));
+    TEST_ASSERT_EQUAL_INT(-LLP4_ERR_TIMEOUT, llp4_parser_feed(&p, 0xAA, 200));
+    TEST_ASSERT_EQUAL_UINT8(LLP4_ST_WAIT_MAGIC2, p.state);
+
+    now = 200;
+    for (i = 1; i < sizeof(good); i++) { /* 0xAA is already in the parser */
+        now = (uint16_t)(now + 1u);
+        rc = llp4_parser_feed(&p, good[i], now);
     }
     TEST_ASSERT_EQUAL_INT(LLP4_EV_FRAME, rc);
     TEST_ASSERT_EQUAL_UINT8(3, p.length);

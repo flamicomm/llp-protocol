@@ -266,7 +266,8 @@ Integration guide (context rules, sizing, RS-485, text-over-LLP):
 ## Testing
 
 ```bash
-pio test -e test                       # 47 Unity tests (core + corpus + ring + R1)
+pio test -e test                       # 50 Unity tests (core + corpus + ring + R1)
+pio test -e test_bits                  # same suite with the bitwise CRC (LLP4_CRC_TABLE=0)
 python3 scripts/check_corpus.py        # canonical corpus + fixture pin
 python3 scripts/llp_v4.py --self-test      # Python reference: init guards
 python3 scripts/llp_v4_rel.py --self-test  # Python reference: R1 guards
@@ -277,9 +278,9 @@ python3 scripts/measure_v4.py --budget # RAM/flash gates
 
 | Suite | Tests | Description |
 |---|---|---|
-| `test_v4.c` | 15 | Core behaviour + the corpus (60 encode + 101 decode cases) |
+| `test_v4.c` | 17 | Core behaviour + the corpus (60 encode + 101 decode cases) |
 | `test_v4_ring.c` | 6 | Ring helper |
-| `test_v4_rel.c` | 26 | Profile R1 state machines + traces T1–T9 |
+| `test_v4_rel.c` | 27 | Profile R1 state machines + traces T1–T9 |
 
 Additional checks run by CI:
 
@@ -287,8 +288,11 @@ Additional checks run by CI:
   with its `MANIFEST.sha256`); `scripts/check_corpus.py` verifies the manifest,
   the committed fixture and — when `../llp-spec` is available — regenerates the
   fixture and diffs it byte for byte.
-- **Fuzzer** (`tools/fuzz_v4.c`): four input distributions, five invariants,
-  AddressSanitizer + UBSan. 600 000 inputs across three seeds.
+- **Fuzzer** (`tools/fuzz_v4.c`): four input distributions, five wire/parser
+  invariants, AddressSanitizer + UBSan. The gate runs 100 000 inputs (seed 1)
+  with the CRC table and 20 000 with the bitwise CRC (`LLP4_CRC_TABLE=0`), each
+  followed by 20 000 random R1 command/ACK/HELLO and ring push/pop
+  interleavings (three more invariants). `FUZZ_ITERS`/`FUZZ_SEED` scale it.
 - **Noise channel** (`tools/noise_report.c`): bit flips, drops, inserts and
   bursts. Results in [`docs/ROBUSTNESS.md`](docs/ROBUSTNESS.md).
 - **Memory footprint**: budget gate + README table check (`scripts/measure_v4.py`).

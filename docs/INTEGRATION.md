@@ -97,6 +97,31 @@ misconfigured value cannot turn into "every frame times out" or "the timeout
 never fires". No timeout is reported while waiting for the magic, so an idle
 link is normal.
 
+On AVR the same 16-bit counter is written by the timer ISR and read by the main
+loop, so a plain `uint16_t now = ticks;` can tear: the ISR may fire between the
+two byte loads. Take a consistent snapshot with interrupts disabled and restore
+the previous interrupt state (an unconditional `sei()` would enable interrupts
+from inside another critical section):
+
+```c
+static volatile uint16_t ticks;
+
+static uint16_t ticks_read(void)
+{
+    uint8_t sreg = SREG;
+    uint16_t value;
+
+    cli();
+    value = ticks;
+    SREG = sreg;
+    return value;
+}
+```
+
+`ATOMIC_BLOCK(ATOMIC_RESTORESTATE)` from `<util/atomic.h>` is the same pattern
+with a macro. Only the ISR writes the counter, so a single snapshot is enough;
+see `examples/v4/avr_baremetal/main.c`.
+
 ### 5. Channels
 
 `CHANNEL` is yours. A convention that works well:
@@ -227,6 +252,8 @@ do not add a bespoke MAC to the payload and call it security.
 - [ ] Payload buffer capacity ≥ the longest payload (`LEN` is checked early).
 - [ ] TX ring can hold `10 + 2n` before encoding starts.
 - [ ] Time is 16-bit, wrap-safe, timeout ≤ 32767 ms.
+- [ ] The transport feeds real elapsed milliseconds (a constant `now_ms` disables the inter-byte timeout).
+- [ ] Reads of a 16-bit ISR-owned tick take an atomic snapshot (see §4).
 - [ ] Only one context calls `feed()` per parser.
 - [ ] The frame handler never blocks the ISR that feeds the parser.
 - [ ] Nothing is acted upon before `feed()` returns a frame (the CRC guarantee).
