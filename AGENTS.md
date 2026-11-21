@@ -10,7 +10,8 @@ máquinas de estado: `README.md` y `docs/`.
 ## Comandos
 
 ```bash
-pio test -e test                              # suite Unity en el host (env nativo)
+pio test -e test                              # suite Unity en el host (env nativo): 50 tests
+pio test -e test_bits                         # misma suite con CRC bitwise (LLP4_CRC_TABLE=0): 50 tests
 sh scripts/sync_corpus.sh                     # re-vendoriza el corpus de ../llp-spec y regenera el fixture
 python3 scripts/check_corpus.py               # manifest + pin del fixture + regeneración byte a byte
 python3 scripts/llp_v4.py --self-test         # guards de init de la referencia Python (wire)
@@ -57,9 +58,12 @@ imprime `scripts/measure_v4.py`; no los cites de memoria.
   `spec/vectors/v4/FIXTURE.sha256` lo pinea. El corpus se copia del normativo
   `llp-spec/vectors/` con `scripts/sync_corpus.sh` (JSON + `MANIFEST.sha256`);
   nunca se edita `spec/vectors/v4/*.json` acá.
-- **`--emit-c` no emite los 9 casos wire de R1** (`rel-*`): no se agregan a mano.
-  R1 se cubre con `test/test_v4_rel.c` y la emisión queda como L-I1b en
-  `llp-spec` (`docs/CONFORMANCE.md`).
+- **Corpus canónico: 170 casos; `--emit-c` emite 161.** Los 9 casos wire de R1
+  (`rel-*`, en `reliability.json`) no se emiten ni se agregan a mano: R1 se
+  cubre con `test/test_v4_rel.c`. El gap está descrito en `docs/CONFORMANCE.md`
+  («Profile R1: what `--emit-c` does not emit»); la tarea **L-I1b** vive en el
+  workspace (`docs/plans/CNC-030-llp-library.md`). No cites estos conteos de
+  memoria: derívalos con el comando de `docs/CONFORMANCE.md` ("Case counts").
 - **El wire cambia primero en `llp-spec`**: acá solo se implementa. Un cambio de
   comportamiento va en el C **y** en la referencia Python (`scripts/llp_v4.py`)
   en el mismo cambio.
